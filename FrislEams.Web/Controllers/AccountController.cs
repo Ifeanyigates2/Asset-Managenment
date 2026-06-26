@@ -15,12 +15,13 @@ public class AccountController(AppDbContext db) : Controller
     }
 
     [HttpPost("/Account/Login")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(string username, string password, string? returnUrl = null)
     {
         var user = await TryAuthenticateAsync(username, password);
         if (user is not null)
         {
-            return SignInUser(user, returnUrl);
+            return await SignInUserAsync(user, returnUrl);
         }
 
         ViewBag.ReturnUrl = returnUrl;
@@ -43,6 +44,7 @@ public class AccountController(AppDbContext db) : Controller
     }
 
     [HttpPost("/Account/Login/{portal}")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> LoginPortal(string portal, string username, string password, string? returnUrl = null)
     {
         if (!PortalService.IsKnownPortal(portal))
@@ -53,7 +55,7 @@ public class AccountController(AppDbContext db) : Controller
         var user = await TryAuthenticateAsync(username, password);
         if (user is not null)
         {
-            return SignInUser(user, returnUrl);
+            return await SignInUserAsync(user, returnUrl);
         }
 
         ViewBag.ReturnUrl = returnUrl;
@@ -100,7 +102,7 @@ public class AccountController(AppDbContext db) : Controller
         return user;
     }
 
-    private IActionResult SignInUser(Models.UserAccount user, string? returnUrl)
+    private async Task<IActionResult> SignInUserAsync(Models.UserAccount user, string? returnUrl)
     {
         var portal = PortalService.GetPortalForRole(user.Role);
         HttpContext.Session.SetString("UserName", user.DisplayName);
@@ -108,6 +110,7 @@ public class AccountController(AppDbContext db) : Controller
         HttpContext.Session.SetString("UserRole", user.Role);
         HttpContext.Session.SetString("UserPortal", portal);
         HttpContext.Session.SetString("MustChangePassword", user.MustChangePassword ? "1" : "0");
+        await HttpContext.Session.CommitAsync();
         TempData["Success"] = $"Welcome to the {portal} portal, {user.DisplayName}!";
 
         if (user.MustChangePassword)

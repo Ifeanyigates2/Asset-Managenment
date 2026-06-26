@@ -3,6 +3,7 @@ using FrislEams.Web.Configuration;
 using FrislEams.Web.Data;
 using FrislEams.Web.Middleware;
 using FrislEams.Web.Services;
+using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
@@ -21,12 +22,21 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IDataProtectionProvider>(new EphemeralDataProtectionProvider());
 
+var isProduction = !builder.Environment.IsDevelopment();
 builder.Services.AddDistributedMemoryCache();
+builder.Services.Configure<CookiePolicyOptions>(options =>
+{
+    options.MinimumSameSitePolicy = SameSiteMode.Lax;
+    options.Secure = isProduction ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
+    options.HttpOnly = HttpOnlyPolicy.Always;
+});
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromHours(8);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = isProduction ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
 });
 
 builder.Services.Configure<MongoDbOptions>(builder.Configuration.GetSection(MongoDbOptions.SectionName));
@@ -62,6 +72,8 @@ builder.Services.AddScoped<MongoVendorService>();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 var app = builder.Build();
@@ -87,7 +99,14 @@ try
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"FRISL EAMS startup warning: database initialization failed: {ex.Message}");
+    Console.WriteLine("FRISL EAMS startup error: database initialization failed.");
+    Console.WriteLine($"  Message: {ex.Message}");
+    if (ex.InnerException is not null)
+    {
+        Console.WriteLine($"  Inner: {ex.InnerException.Message}");
+    }
+
+    Console.WriteLine(ex.StackTrace);
 }
 
 if (!app.Environment.IsDevelopment())
@@ -103,6 +122,7 @@ else
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseCookiePolicy();
 app.UseSession();
 app.UseMiddleware<PortalAccessMiddleware>();
 
