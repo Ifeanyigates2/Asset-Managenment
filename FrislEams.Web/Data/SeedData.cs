@@ -8,7 +8,15 @@ public static class SeedData
 {
     public static async Task InitializeAsync(AppDbContext db, CancellationToken cancellationToken = default)
     {
-        await db.EnsureIndexesAsync(cancellationToken);
+        try
+        {
+            await db.EnsureIndexesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"FRISL EAMS startup warning: index creation failed: {ex.Message}");
+        }
+
         await MigrateLegacyUserAccountsAsync(db, cancellationToken);
         SeedCategories(db);
         SeedAssetTypes(db);

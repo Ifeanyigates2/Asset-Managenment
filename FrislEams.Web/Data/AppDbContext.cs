@@ -86,34 +86,86 @@ public sealed class AppDbContext
 
     public async Task EnsureIndexesAsync(CancellationToken cancellationToken = default)
     {
-        await Assets.Collection.Indexes.CreateOneAsync(
-            new CreateIndexModel<Asset>(Builders<Asset>.IndexKeys.Ascending(a => a.TagCode), new CreateIndexOptions { Unique = true }),
-            cancellationToken: cancellationToken);
-        await Assets.Collection.Indexes.CreateOneAsync(
-            new CreateIndexModel<Asset>(Builders<Asset>.IndexKeys.Ascending(a => a.TagNumber)),
-            cancellationToken: cancellationToken);
-        await RfidTags.Collection.Indexes.CreateOneAsync(
-            new CreateIndexModel<RfidTag>(Builders<RfidTag>.IndexKeys.Ascending(r => r.RfidCode), new CreateIndexOptions { Unique = true }),
-            cancellationToken: cancellationToken);
-        await RfidTags.Collection.Indexes.CreateOneAsync(
+        await CreateIndexSafeAsync(
+            Assets.Collection,
+            new CreateIndexModel<Asset>(
+                Builders<Asset>.IndexKeys.Ascending(a => a.TagCode),
+                new CreateIndexOptions { Unique = true, Name = "TagCode_1" }),
+            cancellationToken);
+        await CreateIndexSafeAsync(
+            Assets.Collection,
+            new CreateIndexModel<Asset>(
+                Builders<Asset>.IndexKeys.Ascending(a => a.TagNumber),
+                new CreateIndexOptions { Name = "TagNumber_1" }),
+            cancellationToken);
+        await CreateIndexSafeAsync(
+            RfidTags.Collection,
+            new CreateIndexModel<RfidTag>(
+                Builders<RfidTag>.IndexKeys.Ascending(r => r.RfidCode),
+                new CreateIndexOptions { Unique = true, Name = "RfidCode_1" }),
+            cancellationToken);
+        await CreateIndexSafeAsync(
+            RfidTags.Collection,
             new CreateIndexModel<RfidTag>(
                 Builders<RfidTag>.IndexKeys.Ascending(r => r.AssetId),
-                new CreateIndexOptions { Unique = true, Sparse = true }),
-            cancellationToken: cancellationToken);
-        await UserAccounts.Collection.Indexes.CreateOneAsync(
-            new CreateIndexModel<UserAccount>(Builders<UserAccount>.IndexKeys.Ascending(u => u.Username), new CreateIndexOptions { Unique = true }),
-            cancellationToken: cancellationToken);
-        await Staff.Collection.Indexes.CreateOneAsync(
-            new CreateIndexModel<Staff>(Builders<Staff>.IndexKeys.Ascending(s => s.StaffId)),
-            cancellationToken: cancellationToken);
-        await AuditResults.Collection.Indexes.CreateOneAsync(
+                new CreateIndexOptions { Unique = true, Sparse = true, Name = "AssetId_1" }),
+            cancellationToken);
+        await CreateIndexSafeAsync(
+            UserAccounts.Collection,
+            new CreateIndexModel<UserAccount>(
+                Builders<UserAccount>.IndexKeys.Ascending(u => u.Username),
+                new CreateIndexOptions { Unique = true, Name = "Username_1" }),
+            cancellationToken);
+        await CreateIndexSafeAsync(
+            Staff.Collection,
+            new CreateIndexModel<Staff>(
+                Builders<Staff>.IndexKeys.Ascending(s => s.StaffId),
+                new CreateIndexOptions { Name = "StaffId_1" }),
+            cancellationToken);
+        await CreateIndexSafeAsync(
+            AuditResults.Collection,
             new CreateIndexModel<AuditResult>(
                 Builders<AuditResult>.IndexKeys.Combine(
                     Builders<AuditResult>.IndexKeys.Ascending(a => a.AuditSessionId),
                     Builders<AuditResult>.IndexKeys.Ascending(a => a.AssetId)),
-                new CreateIndexOptions { Unique = true }),
-            cancellationToken: cancellationToken);
+                new CreateIndexOptions { Unique = true, Name = "AuditSessionId_1_AssetId_1" }),
+            cancellationToken);
     }
+
+    private static async Task CreateIndexSafeAsync<T>(
+        IMongoCollection<T> collection,
+        CreateIndexModel<T> model,
+        CancellationToken cancellationToken)
+    {
+        var collectionName = collection.CollectionNamespace.CollectionName;
+        var indexName = model.Options?.Name ?? "unknown";
+
+        try
+        {
+            await collection.Indexes.CreateOneAsync(model, cancellationToken: cancellationToken);
+        }
+        catch (MongoCommandException ex) when (IsIndexOptionsConflict(ex))
+        {
+            Console.WriteLine(
+                $"FRISL EAMS startup: replacing conflicting index '{indexName}' on '{collectionName}' ({ex.Message})");
+            await collection.Indexes.DropOneAsync(indexName, cancellationToken);
+            await collection.Indexes.CreateOneAsync(model, cancellationToken: cancellationToken);
+        }
+        catch (MongoCommandException ex) when (IsIndexAlreadyExists(ex))
+        {
+            Console.WriteLine(
+                $"FRISL EAMS startup: index '{indexName}' already exists on '{collectionName}', continuing.");
+        }
+    }
+
+    private static bool IsIndexOptionsConflict(MongoCommandException ex)
+        => ex.Code == 85
+           || string.Equals(ex.CodeName, "IndexOptionsConflict", StringComparison.OrdinalIgnoreCase)
+           || ex.Message.Contains("has the same name as the requested index", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsIndexAlreadyExists(MongoCommandException ex)
+        => ex.Code == 68
+           || string.Equals(ex.CodeName, "IndexAlreadyExists", StringComparison.OrdinalIgnoreCase);
 
     public static void RegisterClassMaps()
     {
