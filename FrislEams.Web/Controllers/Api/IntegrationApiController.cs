@@ -4,7 +4,6 @@ using FrislEams.Web.Domain;
 using FrislEams.Web.Models;
 using FrislEams.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FrislEams.Web.Controllers.Api;
 

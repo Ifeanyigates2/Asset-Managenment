@@ -1,0 +1,56 @@
+/* Staff Portal — Orange theme */
+.portal-sidebar-staff {
+    background: linear-gradient(180deg, #f57c00 0%, #e65100 100%);
+}
+
+.portal-theme-staff .portal-main-header-staff {
+    border-bottom: 3px solid #f57c00;
+}
+
+.portal-theme-staff .portal-header-name { color: #e65100; }
+
+.portal-theme-staff .portal-stat-card {
+    border-left-color: #f57c00;
+}
+
+.portal-theme-staff .portal-stat-card .value { color: #e65100; }
+
+.portal-theme-staff .portal-panel h3 {
+    color: #e65100;
+    border-bottom-color: #ffe0b2;
+}
+
+.portal-theme-staff .staff-action-btn {
+    background: #fff8f0;
+    border-color: #ffcc80;
+    color: #e65100;
+}
+
+.portal-theme-staff .staff-action-btn:hover {
+    background: #ffe0b2;
+    color: #bf360c;
+}
+
+.portal-theme-staff .staff-quick-actions {
+    grid-template-columns: 1fr;
+}
+
+.portal-theme-staff .staff-asset-card {
+    border-color: #ffcc80;
+    background: #fffdf8;
+}
+
+.portal-theme-staff .staff-asset-card .asset-icon {
+    background: #ffe0b2;
+}
+
+.portal-theme-staff .portal-spec-features { border-top: 3px solid #f57c00; }
+
+.portal-theme-staff .portal-spec-goal { background: linear-gradient(135deg, #e65100, #f57c00); }
+
+.portal-theme-staff .btn-primary {
+    background: #f57c00;
+    border-color: #f57c00;
+}
+
+.portal-theme-staff .page-header h1 { color: #e65100; }

@@ -3,7 +3,6 @@ using FrislEams.Web.Domain;
 using FrislEams.Web.Models;
 using FrislEams.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FrislEams.Web.Controllers;
 
@@ -40,6 +39,7 @@ public class AssetsController(
         ViewBag.TotalValue = allCosts.Sum();
 
         var assets = await query.OrderByDescending(a => a.CreatedAt).ToListAsync();
+        MongoHydrator.HydrateAssets(assets, db);
         return View(assets);
     }
 
@@ -54,25 +54,30 @@ public class AssetsController(
             .Include(a => a.Supplier)
             .FirstOrDefaultAsync(a => a.Id == id);
         if (asset is null) return NotFound();
+        MongoHydrator.HydrateAssets([asset], db);
 
         ViewBag.History = await db.AssetStatusHistories
             .Where(h => h.AssetId == id)
             .OrderByDescending(h => h.ChangedAt)
             .ToListAsync();
 
-        ViewBag.Assignments = await db.AssetAssignments
+        var assignments = await db.AssetAssignments
             .Include(a => a.AssignedToStaff)
             .Include(a => a.AssignedLocation)
             .Where(a => a.AssetId == id)
             .OrderByDescending(a => a.AssignedDate)
             .ToListAsync();
+        MongoHydrator.HydrateAssignments(assignments, db);
+        ViewBag.Assignments = assignments;
 
-        ViewBag.RfidTag = await db.RfidTags.FirstOrDefaultAsync(r => r.AssetId == id);
-        ViewBag.RepairRequests = await db.RepairRequests
+        ViewBag.RfidTag = await db.RfidTags.AsQueryable().FirstOrDefaultAsync(r => r.AssetId == id && r.IsActive);
+        var repairRequests = await db.RepairRequests
             .Include(r => r.AssignedContractor)
             .Where(r => r.AssetId == id)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
+        MongoHydrator.HydrateRepairRequests(repairRequests, db);
+        ViewBag.RepairRequests = repairRequests;
 
         return View(asset);
     }
@@ -80,6 +85,9 @@ public class AssetsController(
     [HttpGet]
     public async Task<IActionResult> Register()
     {
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin, RoleName.Backoffice))
+            return Forbid();
+
         ViewBag.Categories = await db.AssetCategories.ToListAsync();
         ViewBag.Locations = await db.Locations.ToListAsync();
         ViewBag.Departments = await db.Departments.ToListAsync();
@@ -91,7 +99,7 @@ public class AssetsController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(AssetRegistrationVm vm)
     {
-        if (!roleGuard.HasAnyRole(this, RoleName.Admin))
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin, RoleName.Backoffice))
             return Forbid();
 
         if (!ModelState.IsValid)
@@ -103,15 +111,19 @@ public class AssetsController(
             return View(vm);
         }
 
-        var existingRfid = await db.RfidTags.AnyAsync(r => r.RfidCode == vm.RfidCode.Trim());
-        if (existingRfid)
+        var rfidCode = vm.RfidCode?.Trim();
+        if (!string.IsNullOrWhiteSpace(rfidCode))
         {
-            ModelState.AddModelError(nameof(vm.RfidCode), "This RFID code is already registered.");
-            ViewBag.Categories = await db.AssetCategories.ToListAsync();
-            ViewBag.Locations = await db.Locations.ToListAsync();
-            ViewBag.Departments = await db.Departments.ToListAsync();
-            ViewBag.Suppliers = await db.Suppliers.ToListAsync();
-            return View(vm);
+            var existingRfid = await db.RfidTags.AsQueryable().AnyAsync(r => r.RfidCode == rfidCode);
+            if (existingRfid)
+            {
+                ModelState.AddModelError(nameof(vm.RfidCode), "This RFID code is already registered.");
+                ViewBag.Categories = await db.AssetCategories.ToListAsync();
+                ViewBag.Locations = await db.Locations.ToListAsync();
+                ViewBag.Departments = await db.Departments.ToListAsync();
+                ViewBag.Suppliers = await db.Suppliers.ToListAsync();
+                return View(vm);
+            }
         }
 
         var asset = new Asset
@@ -128,6 +140,7 @@ public class AssetsController(
             SerialNumber = vm.SerialNumber,
             ModelNumber = vm.ModelNumber,
             Brand = vm.Brand,
+            TagNumber = vm.TagNumber,
             WarrantyExpiryDate = vm.WarrantyExpiryDate,
             ExpectedServiceYears = vm.ExpectedServiceYears,
             CurrentCondition = vm.CurrentCondition,
@@ -140,19 +153,53 @@ public class AssetsController(
         db.Assets.Add(asset);
         await db.SaveChangesAsync();
 
-        db.RfidTags.Add(new RfidTag { AssetId = asset.Id, RfidCode = vm.RfidCode.Trim() });
+        if (!string.IsNullOrWhiteSpace(rfidCode))
+        {
+            db.RfidTags.Add(new RfidTag { AssetId = asset.Id, RfidCode = rfidCode, TagStatus = RfidTagStatus.Active, IsActive = true });
+        }
         lifecycleService.ChangeStatus(asset, AssetStatus.RegisteredUnassigned, "Asset registered into EAMS", "Admin");
+
+        var missingPurchaseCost = !asset.PurchaseCost.HasValue;
+        var missingGlCode = string.IsNullOrWhiteSpace(asset.GlCode);
+        if (missingPurchaseCost || missingGlCode)
+        {
+            var missingParts = new List<string>();
+            if (missingPurchaseCost) missingParts.Add("purchase cost");
+            if (missingGlCode) missingParts.Add("GL code");
+
+            db.Notifications.Add(new Notification
+            {
+                TargetRole = RoleName.Backoffice,
+                Title = "Asset Financial Details Need Update",
+                Message = $"Asset {asset.TagCode} ({asset.AssetName}) was registered without {string.Join(" and ", missingParts)}. Please update it as soon as possible.",
+                Type = "Warning",
+                LinkUrl = $"/Assets/Detail/{asset.Id}",
+                IsRead = false
+            });
+        }
+
         await db.SaveChangesAsync();
 
-        TempData["Success"] = $"Asset registered with tag code {asset.TagCode}.";
-        return RedirectToAction(nameof(Detail), new { id = asset.Id });
+        if (missingPurchaseCost || missingGlCode)
+        {
+            var reminderItems = new List<string>();
+            if (missingPurchaseCost) reminderItems.Add("purchase cost");
+            if (missingGlCode) reminderItems.Add("GL code");
+            TempData["Success"] = $"Asset registered with tag code {asset.TagCode}. It now appears in the asset register. Please update the missing {string.Join(" and ", reminderItems)} as soon as possible.";
+        }
+        else
+        {
+            TempData["Success"] = $"Asset registered with tag code {asset.TagCode}. It now appears in the asset register.";
+        }
+
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ChangeStatus(StatusChangeVm vm)
     {
-        if (!roleGuard.HasAnyRole(this, RoleName.Admin)) return Forbid();
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin, RoleName.Backoffice)) return Forbid();
 
         var asset = await db.Assets.FindAsync(vm.AssetId);
         if (asset is null) return NotFound();
@@ -179,6 +226,11 @@ public class AssetsController(
         var asset = await db.Assets
             .Include(a => a.AssetCategory)
             .FirstOrDefaultAsync(a => a.Id == id);
+        if (asset is not null)
+        {
+            MongoHydrator.HydrateAssets([asset], db);
+        }
+
         ViewBag.Asset = asset;
         return View(history);
     }

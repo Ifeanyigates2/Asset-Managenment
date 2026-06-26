@@ -3,11 +3,10 @@ using FrislEams.Web.Domain;
 using FrislEams.Web.Models;
 using FrislEams.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FrislEams.Web.Controllers;
 
-public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecycleService) : Controller
+public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecycleService, RfidTagService rfidTagService) : Controller
 {
     [HttpGet]
     public async Task<IActionResult> Index()
@@ -23,7 +22,7 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
     [HttpGet]
     public async Task<IActionResult> Create(int? assetId)
     {
-        ViewBag.Assets = await db.Assets.Where(a => a.CurrentStatus == AssetStatus.RegisteredUnassigned).ToListAsync();
+        ViewBag.Assets = await db.Assets.AsQueryable().Where(a => a.CurrentStatus == AssetStatus.RegisteredUnassigned).ToListAsync();
         ViewBag.Staff = await db.Staff.ToListAsync();
         ViewBag.Departments = await db.Departments.ToListAsync();
         ViewBag.Locations = await db.Locations.ToListAsync();
@@ -78,10 +77,20 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Confirm(AssignmentConfirmVm vm)
     {
-        var assignment = await db.AssetAssignments.Include(a => a.Asset).FirstOrDefaultAsync(a => a.Id == vm.AssignmentId);
+        var assignment = await db.AssetAssignments.AsQueryable().Include(a => a.Asset).FirstOrDefaultAsync(a => a.Id == vm.AssignmentId);
         if (assignment?.Asset is null)
         {
             return NotFound();
+        }
+
+        if (!string.IsNullOrWhiteSpace(vm.ScannedRfidCode))
+        {
+            var tag = await rfidTagService.FindByAssetIdAsync(assignment.AssetId);
+            if (tag is null || !string.Equals(tag.RfidCode, vm.ScannedRfidCode.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["Error"] = "RFID scan does not match this asset. Verify the tag before confirming.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         assignment.ConfirmationDate = DateTime.UtcNow;

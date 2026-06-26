@@ -1,0 +1,58 @@
+@model List<FrislEams.Web.Models.AssetTransfer>
+@{ ViewData["Title"] = "Asset Transfers"; }
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Asset Transfers</h1>
+        <p class="page-subtitle">Submit, approve, and complete transfers with departure and arrival RFID scans</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">+ New Transfer</a>
+</div>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr><th>Asset</th><th>From → To Dept</th><th>Status</th><th>Departure</th><th>Arrival</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var t in Model)
+        {
+            <tr>
+                <td>#@t.AssetId</td>
+                <td>@t.FromDepartmentId → @t.ToDepartmentId</td>
+                <td><span class="badge badge-info">@t.Status</span></td>
+                <td>@(t.DepartureScannedAt?.ToString("dd MMM HH:mm") ?? "—")</td>
+                <td>@(t.ArrivalScannedAt?.ToString("dd MMM HH:mm") ?? "—")</td>
+                <td>
+                    @if (t.Status == "Pending")
+                    {
+                        <form asp-action="Approve" method="post" style="display:inline;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@t.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline">Approve</button>
+                        </form>
+                    }
+                    @if (t.Status == "Approved")
+                    {
+                        <form asp-action="ScanDeparture" method="post" class="inline-confirm-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@t.Id" />
+                            <input type="text" name="rfidCode" placeholder="Departure scan" class="form-control form-control-sm" required />
+                            <button type="submit" class="btn btn-sm btn-primary">Scan Departure</button>
+                        </form>
+                    }
+                    @if (t.Status == "Departed")
+                    {
+                        <form asp-action="ScanArrival" method="post" class="inline-confirm-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@t.Id" />
+                            <input type="text" name="rfidCode" placeholder="Arrival scan" class="form-control form-control-sm" required />
+                            <button type="submit" class="btn btn-sm btn-primary">Scan Arrival</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

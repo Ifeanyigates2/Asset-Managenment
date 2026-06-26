@@ -1,0 +1,54 @@
+@model List<FrislEams.Web.Models.AssetStatusHistory>
+@{
+    ViewData["Title"] = "Audit Trails";
+    var assets = ViewBag.Assets as Dictionary<int, FrislEams.Web.Models.Asset> ?? new();
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Audit Trails</h1>
+        <p class="page-subtitle">System-wide asset lifecycle and status change log</p>
+    </div>
+</div>
+
+<div class="info-card" style="margin-bottom:1.5rem;">
+    <h3 class="info-card-title">System Activity Log</h3>
+    <p class="text-muted" style="font-size:0.85rem;margin-bottom:0.75rem;">User actions — login, RFID operations, transfers, user management (append-only)</p>
+    <table class="data-table">
+        <thead><tr><th>Date</th><th>User</th><th>Action</th><th>Entity</th><th>Change</th></tr></thead>
+        <tbody>
+        @foreach (var log in ViewBag.SystemLogs as List<FrislEams.Web.Models.SystemAuditLog> ?? new())
+        {
+            <tr>
+                <td>@log.OccurredAt.ToString("dd MMM yyyy HH:mm")</td>
+                <td>@log.Username</td>
+                <td>@log.Action</td>
+                <td>@log.EntityType @(log.EntityId != null ? $"#{log.EntityId}" : "")</td>
+                <td style="font-size:0.85rem;">@(log.PreviousValue != null ? $"{log.PreviousValue} → {log.NewValue}" : log.NewValue ?? "—")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<div class="info-card">
+    <h3 class="info-card-title">Asset Status History</h3>
+    <table class="data-table">
+        <thead>
+            <tr><th>Date</th><th>Asset</th><th>Change</th><th>Reason</th><th>By</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var trail in Model)
+        {
+            assets.TryGetValue(trail.AssetId, out var asset);
+            <tr>
+                <td>@trail.ChangedAt.ToString("dd MMM yyyy HH:mm")</td>
+                <td>@(asset?.TagCode ?? $"#{trail.AssetId}") — @(asset?.AssetName ?? "")</td>
+                <td>@trail.PreviousStatus → @trail.NewStatus</td>
+                <td>@trail.Reason</td>
+                <td>@trail.ChangedBy</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

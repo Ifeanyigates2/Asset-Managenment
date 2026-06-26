@@ -1,0 +1,18 @@
+@{
+    var sessionUser = Context.Session.GetString("UserName") ?? "User";
+    var sessionRole = Context.Session.GetString("UserRole") ?? "User";
+    var initials = string.Concat(sessionUser.Split(' ').Take(2).Select(w => char.ToUpper(w[0]))).ToString();
+}
+<div class="portal-sidebar-footer">
+    <div class="portal-sidebar-user">
+        <div class="avatar">@initials</div>
+        <div>
+            <div class="portal-user-name">@sessionUser</div>
+            <div class="portal-user-role">@sessionRole</div>
+        </div>
+    </div>
+    <a href="/Account/Logout" class="portal-logout-btn portal-logout-btn-sidebar">
+        <span class="portal-logout-icon" aria-hidden="true">⎋</span>
+        Logout
+    </a>
+</div>

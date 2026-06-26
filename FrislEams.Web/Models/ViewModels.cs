@@ -18,14 +18,14 @@ public class AssetRegistrationVm
     public string? SerialNumber { get; set; }
     public string? ModelNumber { get; set; }
     public string? Brand { get; set; }
+    public string? TagNumber { get; set; }
     public DateTime? WarrantyExpiryDate { get; set; }
     public int? ExpectedServiceYears { get; set; }
     public string CurrentCondition { get; set; } = "Good";
     public int InitialLocationId { get; set; }
     public int? InitialDepartmentId { get; set; }
     public string? Notes { get; set; }
-    [Required]
-    public string RfidCode { get; set; } = string.Empty;
+    public string? RfidCode { get; set; }
 }
 
 public class StatusChangeVm
@@ -58,6 +58,59 @@ public class AssignmentConfirmVm
     public int ConfirmedByStaffId { get; set; }
     [Required]
     public string ConfirmedCondition { get; set; } = "Good";
+    public string? ScannedRfidCode { get; set; }
+}
+
+public class UserCreateVm
+{
+    [Required]
+    public string EmployeeId { get; set; } = string.Empty;
+    [Required]
+    public string DisplayName { get; set; } = string.Empty;
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public string? Designation { get; set; }
+    public int? DepartmentId { get; set; }
+    public int? BranchLocationId { get; set; }
+    [Required]
+    public string Role { get; set; } = "Staff";
+    [Required]
+    [MinLength(6)]
+    public string TemporaryPassword { get; set; } = string.Empty;
+}
+
+public class ChangePasswordVm
+{
+    [Required]
+    public string CurrentPassword { get; set; } = string.Empty;
+    [Required]
+    [MinLength(6)]
+    public string NewPassword { get; set; } = string.Empty;
+    [Required]
+    [Compare(nameof(NewPassword))]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
+public class TransferCreateVm
+{
+    [Required]
+    public int AssetId { get; set; }
+    [Required]
+    public int ToDepartmentId { get; set; }
+    public int? ToLocationId { get; set; }
+}
+
+public class MasterDataItemVm
+{
+    [Required]
+    public string Name { get; set; } = string.Empty;
+    [Required]
+    public string Code { get; set; } = string.Empty;
+    public string? LocationType { get; set; }
+    public int? ParentLocationId { get; set; }
+    public int? AssetCategoryId { get; set; }
 }
 
 public class RepairRequestVm

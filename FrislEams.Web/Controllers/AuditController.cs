@@ -3,7 +3,6 @@ using FrislEams.Web.Domain;
 using FrislEams.Web.Models;
 using FrislEams.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FrislEams.Web.Controllers;
 
@@ -75,7 +74,7 @@ public class AuditController(AppDbContext db, AuditService auditService, RoleGua
     [HttpGet]
     public async Task<IActionResult> Variance(int id)
     {
-        var session = await db.AuditSessions.Include(s => s.Department).FirstOrDefaultAsync(s => s.Id == id);
+        var session = await db.AuditSessions.AsQueryable().Include(s => s.Department).FirstOrDefaultAsync(s => s.Id == id);
         if (session is null)
         {
             return NotFound();

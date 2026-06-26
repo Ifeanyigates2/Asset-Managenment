@@ -1,0 +1,69 @@
+@{
+    ViewData["Title"] = "Portal Overview";
+    var metrics = ViewBag.Metrics as Dictionary<string, int> ?? new();
+    var myAssets = ViewBag.MyAssets as List<FrislEams.Web.Models.Asset> ?? new();
+    string AssetIcon(string? name) => (name ?? "").ToLowerInvariant() switch
+    {
+        var n when n.Contains("laptop") || n.Contains("computer") => "💻",
+        var n when n.Contains("printer") => "🖨️",
+        var n when n.Contains("chair") || n.Contains("furniture") => "🪑",
+        var n when n.Contains("vehicle") || n.Contains("car") => "🚗",
+        _ => "📦"
+    };
+}
+
+<div class="portal-dash-header">
+    <span class="portal-overview-badge">Portal Overview</span>
+    <h1>Dashboard</h1>
+</div>
+
+<div class="portal-stat-row">
+    <div class="portal-stat-card"><div class="label">Total Assets</div><div class="value">@metrics.GetValueOrDefault("MyAssets")</div></div>
+    <div class="portal-stat-card"><div class="label">Pending Requests</div><div class="value">@metrics.GetValueOrDefault("PendingRequests")</div></div>
+    <div class="portal-stat-card"><div class="label">Due for Return</div><div class="value">@metrics.GetValueOrDefault("DueForReturn")</div></div>
+    <div class="portal-stat-card"><div class="label">Notifications</div><div class="value">@metrics.GetValueOrDefault("Notifications")</div></div>
+</div>
+
+<div class="portal-dash-grid">
+    <div class="portal-panel">
+        <h3>My Assets</h3>
+        <div class="staff-asset-cards">
+            @if (!myAssets.Any())
+            {
+                <p class="text-muted">No assets currently assigned to you.</p>
+            }
+            @foreach (var asset in myAssets.Take(6))
+            {
+                <div class="staff-asset-card">
+                    <div class="asset-icon">@AssetIcon(asset.AssetName)</div>
+                    <div>
+                        <div class="asset-name">@asset.AssetName</div>
+                        <div class="asset-meta">@asset.TagCode · Assigned @asset.UpdatedAt.ToString("dd MMM yyyy")</div>
+                    </div>
+                </div>
+            }
+        </div>
+        <a asp-controller="MyAssets" asp-action="Index" class="btn btn-sm btn-outline" style="margin-top:0.75rem;">View all my assets</a>
+    </div>
+    <div class="portal-panel">
+        <h3>Quick Actions</h3>
+        <div class="staff-quick-actions">
+            <a asp-controller="Workflow" asp-action="Rfid" class="staff-action-btn">
+                <span class="action-ico">📡</span>
+                <span>Scan Asset (RFID)</span>
+            </a>
+            <a asp-controller="Workflow" asp-action="Requests" class="staff-action-btn">
+                <span class="action-ico">🔄</span>
+                <span>Request Movement</span>
+            </a>
+            <a asp-controller="Workflow" asp-action="Loans" class="staff-action-btn">
+                <span class="action-ico">↩️</span>
+                <span>Return Asset</span>
+            </a>
+            <a asp-controller="Workflow" asp-action="Repairs" class="staff-action-btn">
+                <span class="action-ico">🔧</span>
+                <span>Report Issue</span>
+            </a>
+        </div>
+    </div>
+</div>

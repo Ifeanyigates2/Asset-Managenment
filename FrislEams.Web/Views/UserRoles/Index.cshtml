@@ -1,0 +1,89 @@
+@model List<UserAccount>
+@using FrislEams.Web.Domain
+@{
+    ViewData["Title"] = "User Roles";
+    var roleOptions = ViewBag.RoleOptions as string[] ?? [RoleName.Backoffice, RoleName.Auditor, RoleName.Staff, RoleName.DepartmentHead, RoleName.Viewer, RoleName.Supplier, RoleName.RepairContractor];
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>User Roles</h1>
+        <p class="page-subtitle">Review user accounts and assign roles from Backoffice.</p>
+    </div>
+</div>
+
+<div class="cards-grid cards-grid-4">
+    <div class="metric-card">
+        <div class="metric-label">Total Accounts</div>
+        <div class="metric-value">@Model.Count</div>
+        <div class="metric-sub">stored in the user account table</div>
+    </div>
+    <div class="metric-card success">
+        <div class="metric-label">Backoffice</div>
+        <div class="metric-value">@Model.Count(u => string.Equals(u.Role, RoleName.Backoffice, StringComparison.OrdinalIgnoreCase))</div>
+        <div class="metric-sub">admin-capable accounts</div>
+    </div>
+    <div class="metric-card gold">
+        <div class="metric-label">Auditors</div>
+        <div class="metric-value">@Model.Count(u => string.Equals(u.Role, RoleName.Auditor, StringComparison.OrdinalIgnoreCase))</div>
+        <div class="metric-sub">audit access accounts</div>
+    </div>
+    <div class="metric-card warning">
+        <div class="metric-label">Staff</div>
+        <div class="metric-value">@Model.Count(u => string.Equals(u.Role, RoleName.Staff, StringComparison.OrdinalIgnoreCase))</div>
+        <div class="metric-sub">operational accounts</div>
+    </div>
+</div>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-error" style="margin-top:1rem;"><span>⚠</span> @error</div>
+}
+
+<div class="table-card" style="margin-top:1rem;">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Account ID</th>
+                <th>Username</th>
+                <th>Display Name</th>
+                <th>Current Role</th>
+                <th>Status</th>
+                <th>Assign Role</th>
+                <th>Update</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td class="monospace">@user.Id</td>
+                <td>@user.Username</td>
+                <td>@user.DisplayName</td>
+                <td><span class="badge badge-info">@user.Role</span></td>
+                <td><span class="badge @(user.IsActive ? "badge-success" : "badge-muted")">@(user.IsActive ? "Active" : "Inactive")</span></td>
+                <td>
+                    <form id="role-form-@user.Id" asp-action="UpdateRole" method="post" class="inline-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@user.Id" />
+                        <select name="role" class="form-control form-control-sm" style="min-width:180px;">
+                            @foreach (var role in roleOptions)
+                            {
+                                <option value="@role" selected="@(string.Equals(user.Role, role, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@role</option>
+                            }
+                        </select>
+                    </form>
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-sm btn-primary" form="role-form-@user.Id">Save Role</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="empty-state" style="margin-top:1rem;">No user accounts found.</div>
+}

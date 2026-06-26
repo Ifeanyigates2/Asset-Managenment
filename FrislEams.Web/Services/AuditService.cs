@@ -1,6 +1,5 @@
 using FrislEams.Web.Data;
 using FrislEams.Web.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace FrislEams.Web.Services;
 
@@ -24,12 +23,15 @@ public class AuditService(AppDbContext db)
 
     public async Task SubmitResultAsync(SubmitAuditResultVm vm)
     {
-        var existing = await db.AuditResults.FirstOrDefaultAsync(a => a.AuditSessionId == vm.AuditSessionId && a.AssetId == vm.AssetId);
+        var existing = await db.AuditResults.AsQueryable()
+            .FirstOrDefaultAsync(a => a.AuditSessionId == vm.AuditSessionId && a.AssetId == vm.AssetId);
         if (existing is not null)
         {
             existing.SeenStatus = vm.SeenStatus;
             existing.PhysicalCondition = vm.PhysicalCondition;
             existing.Notes = vm.Notes;
+            db.AuditResults.Update(existing);
+            await db.SaveChangesAsync();
             return;
         }
 
@@ -42,6 +44,7 @@ public class AuditService(AppDbContext db)
             Notes = vm.Notes,
             CreatedAt = DateTime.UtcNow
         });
+        await db.SaveChangesAsync();
     }
 
     public async Task CloseSessionAsync(int sessionId)
@@ -54,11 +57,13 @@ public class AuditService(AppDbContext db)
 
         session.Status = "Closed";
         session.EndDate = DateTime.UtcNow;
+        db.AuditSessions.Update(session);
+        await db.SaveChangesAsync();
     }
 
     public async Task<Dictionary<string, int>> BuildVarianceAsync(int sessionId)
     {
-        var results = await db.AuditResults.Where(r => r.AuditSessionId == sessionId).ToListAsync();
+        var results = await db.AuditResults.AsQueryable().Where(r => r.AuditSessionId == sessionId).ToListAsync();
 
         var seen = results.Count(r => r.SeenStatus == "Seen");
         var missing = results.Count(r => r.SeenStatus == "Missing");

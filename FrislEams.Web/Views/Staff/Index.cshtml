@@ -75,7 +75,7 @@
                 <td class="monospace" style="font-size:0.82rem;">@s.StaffId</td>
                 <td><strong>@s.FullName</strong></td>
                 <td>
-                    <span class="badge @(s.Role == "Admin" ? "badge-info" : s.Role == "Auditor" ? "badge-gold" : "badge-default")" style="font-size:0.75rem;">
+                    <span class="badge @(s.Role is "Admin" or "Backoffice" ? "badge-info" : s.Role == "Auditor" ? "badge-gold" : "badge-default")" style="font-size:0.75rem;">
                         @s.Role
                     </span>
                 </td>

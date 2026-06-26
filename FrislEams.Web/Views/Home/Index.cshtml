@@ -2,6 +2,9 @@
 @using FrislEams.Web.Services
 @{
     ViewData["Title"] = "Dashboard";
+    var currentRole = Context.Session.GetString("UserRole") ?? "Backoffice";
+    var incompleteFinancialAssets = Model.AssetsMissingFinancialDetails ?? new();
+    var canRegister = string.Equals(currentRole, "Backoffice", StringComparison.OrdinalIgnoreCase) || string.Equals(currentRole, "Admin", StringComparison.OrdinalIgnoreCase) || string.Equals(currentRole, "Auditor", StringComparison.OrdinalIgnoreCase);
 }
 
 <div class="page-header">
@@ -10,7 +13,10 @@
         <p class="page-subtitle">First Registrars &amp; Investor Services — EAMS Overview</p>
     </div>
     <div class="flex-gap">
-        <a asp-controller="Assets" asp-action="Register" class="btn btn-primary">+ Register New Asset</a>
+        @if (canRegister)
+        {
+            <a asp-controller="Assets" asp-action="Register" class="btn btn-primary">+ Register New Asset</a>
+        }
         <a href="/dashboard" class="btn btn-outline">Analytics View</a>
     </div>
 </div>
@@ -98,6 +104,33 @@
     </div>
 }
 
+@if ((string.Equals(currentRole, "Backoffice", StringComparison.OrdinalIgnoreCase) || string.Equals(currentRole, "Admin", StringComparison.OrdinalIgnoreCase)) && incompleteFinancialAssets.Any())
+{
+    <div class="action-banner" style="margin-top:1rem;background:linear-gradient(90deg,#fff7e1,#fffdf5);border-color:#f1d27a;color:#7a5a00;">
+        <strong>Financial Details Pending:</strong>
+        <span>@incompleteFinancialAssets.Count asset@(incompleteFinancialAssets.Count != 1 ? "s" : "") still need purchase cost and/or GL code updates.</span>
+        @foreach (var asset in incompleteFinancialAssets)
+        {
+            <span class="sep">·</span>
+            <a asp-controller="Assets" asp-action="Detail" asp-route-id="@asset.AssetId">
+                @asset.TagCode
+                @if (asset.MissingPurchaseCost && asset.MissingGlCode)
+                {
+                    <text> missing cost + GL</text>
+                }
+                else if (asset.MissingPurchaseCost)
+                {
+                    <text> missing cost</text>
+                }
+                else if (asset.MissingGlCode)
+                {
+                    <text> missing GL</text>
+                }
+            </a>
+        }
+    </div>
+}
+
 <div class="two-col-layout" style="margin-top:1.5rem;">
     <!-- Asset Distribution by Category -->
     <div class="info-card">
@@ -155,10 +188,13 @@
         <div class="ql-icon" style="background:#e8f0fb;">🏷️</div>
         <span class="label">Asset Register</span>
     </a>
-    <a asp-controller="Assets" asp-action="Register" class="quick-link-card">
-        <div class="ql-icon" style="background:#e8f0fb;">➕</div>
-        <span class="label">Register Asset</span>
-    </a>
+    @if (canRegister)
+    {
+        <a asp-controller="Assets" asp-action="Register" class="quick-link-card">
+            <div class="ql-icon" style="background:#e8f0fb;">➕</div>
+            <span class="label">Register Asset</span>
+        </a>
+    }
     <a asp-controller="Assignments" asp-action="Index" class="quick-link-card">
         <div class="ql-icon" style="background:#fdf3e3;">📋</div>
         <span class="label">Assignments</span>

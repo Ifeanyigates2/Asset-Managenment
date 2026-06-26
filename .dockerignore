@@ -1,0 +1,11 @@
+**/.git
+**/.vs
+**/.local
+**/.ifeanyi
+**/bin
+**/obj
+**/*.db
+**/*.db-shm
+**/*.db-wal
+FrislEams.Web/appsettings.Development.json
+FrislEams.Web/eams.db

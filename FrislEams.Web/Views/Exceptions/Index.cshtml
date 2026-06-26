@@ -1,0 +1,30 @@
+@model List<FrislEams.Web.Services.ExceptionRecord>
+@{ ViewData["Title"] = "Exceptions"; }
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Exceptions</h1>
+        <p class="page-subtitle">RFID alerts, audit variances, and items requiring attention</p>
+    </div>
+</div>
+
+<div class="info-card">
+    <table class="data-table">
+        <thead>
+            <tr><th>Type</th><th>Asset</th><th>Description</th><th>Severity</th><th>Raised</th><th></th></tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Type</td>
+                <td>@item.AssetTag</td>
+                <td>@item.Description</td>
+                <td><span class="badge @(item.Severity == "High" ? "badge-danger" : "badge-warning")">@item.Severity</span></td>
+                <td>@item.RaisedAt.ToString("dd MMM yyyy")</td>
+                <td>@if (item.ActionUrl != null) { <a href="@item.ActionUrl">Review</a> }</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

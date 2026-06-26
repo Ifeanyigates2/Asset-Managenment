@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: frisl-eams
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /Account/Login
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: MongoDb__ConnectionString
+        sync: false
+      - key: MongoDb__DatabaseName
+        value: frisl_asset_management
+      - key: MongoDb__UsersCollectionName
+        value: users

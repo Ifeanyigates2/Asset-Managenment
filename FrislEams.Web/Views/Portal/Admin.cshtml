@@ -1,0 +1,77 @@
+@{
+    ViewData["Title"] = "Portal Overview";
+    var metrics = ViewBag.Metrics as Dictionary<string, int> ?? new();
+    var summary = ViewBag.Summary as FrislEams.Web.Services.AdminDashboardMetrics;
+    var recentUsers = ViewBag.RecentUsers as List<FrislEams.Web.Models.UserAccount> ?? new();
+    var activity = ViewBag.UserActivity as int[] ?? new[] { 12, 18, 15, 22, 19, 14, 20 };
+    var days = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+    var maxActivity = activity.DefaultIfEmpty(1).Max();
+    var topCategories = summary?.AssetsByCategory.OrderByDescending(x => x.Value).Take(4).ToList() ?? new();
+}
+
+<div class="portal-dash-header">
+    <span class="portal-overview-badge">Portal Overview</span>
+    <h1>Dashboard</h1>
+</div>
+
+<div class="portal-stat-row">
+    <div class="portal-stat-card"><div class="label">Total Users</div><div class="value">@metrics.GetValueOrDefault("Total Users")</div></div>
+    <div class="portal-stat-card"><div class="label">Active Users</div><div class="value">@metrics.GetValueOrDefault("Active Users")</div></div>
+    <div class="portal-stat-card"><div class="label">Roles</div><div class="value">@metrics.GetValueOrDefault("Roles")</div></div>
+    <div class="portal-stat-card"><div class="label">RFID Devices</div><div class="value">@metrics.GetValueOrDefault("RFID Devices")</div></div>
+</div>
+
+<div class="portal-dash-grid">
+    <div class="portal-panel">
+        <h3>User Activity (7 Days)</h3>
+        <div class="activity-bars">
+            @for (var i = 0; i < activity.Length; i++)
+            {
+                var h = maxActivity > 0 ? (int)(activity[i] * 100.0 / maxActivity) : 0;
+                <div class="activity-bar-col">
+                    <div class="activity-bar" style="height:@h%"></div>
+                    <span>@days[i % days.Length]</span>
+                </div>
+            }
+        </div>
+    </div>
+    <div>
+        <div class="portal-panel" style="margin-bottom:1rem;">
+            <h3>System Health</h3>
+            <div class="system-health">
+                <div class="health-icon">✅</div>
+                <div class="health-text">All Systems Operational</div>
+            </div>
+        </div>
+        <div class="portal-panel">
+            <h3>Recent Signups</h3>
+            <ul class="portal-feed">
+                @foreach (var user in recentUsers.Take(4))
+                {
+                    var ago = (DateTime.UtcNow - user.CreatedAt).TotalDays;
+                    var agoText = ago < 1 ? "Today" : ago < 2 ? "1 day ago" : $"{(int)ago} days ago";
+                    <li>
+                        <div class="feed-title">@user.Username</div>
+                        <div class="feed-meta">@user.Role · @agoText</div>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+@if (topCategories.Any())
+{
+    <div class="portal-panel" style="margin-top:1rem;">
+        <h3>Top Asset Categories</h3>
+        <table class="data-table">
+            <thead><tr><th>Category</th><th>Count</th></tr></thead>
+            <tbody>
+            @foreach (var cat in topCategories)
+            {
+                <tr><td>@cat.Key</td><td>@cat.Value.ToString("N0")</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

@@ -1,43 +1,197 @@
+using FrislEams.Web.Configuration;
 using FrislEams.Web.Models;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using MongoDB.Bson.Serialization;
+using MongoDB.Driver;
 
 namespace FrislEams.Web.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public sealed class AppDbContext
 {
-    public DbSet<Asset> Assets => Set<Asset>();
-    public DbSet<AssetCategory> AssetCategories => Set<AssetCategory>();
-    public DbSet<Department> Departments => Set<Department>();
-    public DbSet<Location> Locations => Set<Location>();
-    public DbSet<Supplier> Suppliers => Set<Supplier>();
-    public DbSet<RepairContractor> RepairContractors => Set<RepairContractor>();
-    public DbSet<Staff> Staff => Set<Staff>();
-    public DbSet<RfidTag> RfidTags => Set<RfidTag>();
-    public DbSet<AssetAssignment> AssetAssignments => Set<AssetAssignment>();
-    public DbSet<AssetStatusHistory> AssetStatusHistories => Set<AssetStatusHistory>();
-    public DbSet<AssetRequest> AssetRequests => Set<AssetRequest>();
-    public DbSet<RepairRequest> RepairRequests => Set<RepairRequest>();
-    public DbSet<LoanRequest> LoanRequests => Set<LoanRequest>();
-    public DbSet<ExitGrant> ExitGrants => Set<ExitGrant>();
-    public DbSet<RfidEvent> RfidEvents => Set<RfidEvent>();
-    public DbSet<AuditSession> AuditSessions => Set<AuditSession>();
-    public DbSet<AuditResult> AuditResults => Set<AuditResult>();
-    public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<ProcurementRecord> ProcurementRecords => Set<ProcurementRecord>();
-    public DbSet<IntegrationEventLog> IntegrationEventLogs => Set<IntegrationEventLog>();
+    private readonly IMongoDatabase database;
+    private readonly MongoIdGenerator idGenerator;
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    public AppDbContext(IMongoClient mongoClient, IOptions<MongoDbOptions> options)
     {
-        modelBuilder.Entity<Asset>().HasIndex(a => a.TagCode).IsUnique();
-        modelBuilder.Entity<RfidTag>().HasIndex(r => r.RfidCode).IsUnique();
-        modelBuilder.Entity<RfidTag>().HasIndex(r => r.AssetId).IsUnique();
-        modelBuilder.Entity<AssetStatusHistory>().HasIndex(h => h.ChangedAt);
-        modelBuilder.Entity<RfidEvent>().HasIndex(e => e.EventTime);
-        modelBuilder.Entity<AuditResult>().HasIndex(a => new { a.AuditSessionId, a.AssetId }).IsUnique();
-        modelBuilder.Entity<ProcurementRecord>().HasIndex(p => p.ExternalReference);
-        modelBuilder.Entity<IntegrationEventLog>().HasIndex(i => i.CreatedAt);
-        modelBuilder.Entity<Staff>().HasIndex(s => s.StaffId);
+        var mongoOptions = options.Value;
+        database = mongoClient.GetDatabase(mongoOptions.DatabaseName);
+        idGenerator = new MongoIdGenerator(database);
 
-        base.OnModelCreating(modelBuilder);
+        Assets = CreateSet<Asset>("assets");
+        AssetCategories = CreateSet<AssetCategory>("assetCategories");
+        Departments = CreateSet<Department>("departments");
+        Locations = CreateSet<Location>("locations");
+        Suppliers = CreateSet<Supplier>("suppliers");
+        RepairContractors = CreateSet<RepairContractor>("repairContractors");
+        Staff = CreateSet<Staff>("staff");
+        RfidTags = CreateSet<RfidTag>("rfidTags");
+        AssetTypes = CreateSet<AssetType>("assetTypes");
+        Manufacturers = CreateSet<Manufacturer>("manufacturers");
+        AssetTransfers = CreateSet<AssetTransfer>("assetTransfers");
+        StockVerificationSessions = CreateSet<StockVerificationSession>("stockVerificationSessions");
+        StockVerificationScans = CreateSet<StockVerificationScan>("stockVerificationScans");
+        SystemAuditLogs = CreateSet<SystemAuditLog>("systemAuditLogs");
+        AssetAssignments = CreateSet<AssetAssignment>("assetAssignments");
+        AssetStatusHistories = CreateSet<AssetStatusHistory>("assetStatusHistories");
+        AssetRequests = CreateSet<AssetRequest>("assetRequests");
+        RepairRequests = CreateSet<RepairRequest>("repairRequests");
+        LoanRequests = CreateSet<LoanRequest>("loanRequests");
+        ExitGrants = CreateSet<ExitGrant>("exitGrants");
+        RfidEvents = CreateSet<RfidEvent>("rfidEvents");
+        AuditSessions = CreateSet<AuditSession>("auditSessions");
+        AuditResults = CreateSet<AuditResult>("auditResults");
+        Notifications = CreateSet<Notification>("notifications");
+        ProcurementRecords = CreateSet<ProcurementRecord>("procurementRecords");
+        IntegrationEventLogs = CreateSet<IntegrationEventLog>("integrationEventLogs");
+        UserAccounts = CreateSet<UserAccount>(mongoOptions.UsersCollectionName);
+    }
+
+    /// <summary>MongoDB <c>users</c> collection (login accounts).</summary>
+    public MongoEntitySet<UserAccount> Users => UserAccounts;
+
+    public MongoEntitySet<Asset> Assets { get; }
+    public MongoEntitySet<AssetCategory> AssetCategories { get; }
+    public MongoEntitySet<Department> Departments { get; }
+    public MongoEntitySet<Location> Locations { get; }
+    public MongoEntitySet<Supplier> Suppliers { get; }
+    public MongoEntitySet<RepairContractor> RepairContractors { get; }
+    public MongoEntitySet<Staff> Staff { get; }
+    public MongoEntitySet<RfidTag> RfidTags { get; }
+    public MongoEntitySet<AssetType> AssetTypes { get; }
+    public MongoEntitySet<Manufacturer> Manufacturers { get; }
+    public MongoEntitySet<AssetTransfer> AssetTransfers { get; }
+    public MongoEntitySet<StockVerificationSession> StockVerificationSessions { get; }
+    public MongoEntitySet<StockVerificationScan> StockVerificationScans { get; }
+    public MongoEntitySet<SystemAuditLog> SystemAuditLogs { get; }
+    public MongoEntitySet<AssetAssignment> AssetAssignments { get; }
+    public MongoEntitySet<AssetStatusHistory> AssetStatusHistories { get; }
+    public MongoEntitySet<AssetRequest> AssetRequests { get; }
+    public MongoEntitySet<RepairRequest> RepairRequests { get; }
+    public MongoEntitySet<LoanRequest> LoanRequests { get; }
+    public MongoEntitySet<ExitGrant> ExitGrants { get; }
+    public MongoEntitySet<RfidEvent> RfidEvents { get; }
+    public MongoEntitySet<AuditSession> AuditSessions { get; }
+    public MongoEntitySet<AuditResult> AuditResults { get; }
+    public MongoEntitySet<Notification> Notifications { get; }
+    public MongoEntitySet<ProcurementRecord> ProcurementRecords { get; }
+    public MongoEntitySet<IntegrationEventLog> IntegrationEventLogs { get; }
+    public MongoEntitySet<UserAccount> UserAccounts { get; }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        return SaveAllAsync(cancellationToken);
+    }
+
+    public void SaveChanges() => SaveAllAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+    public async Task EnsureIndexesAsync(CancellationToken cancellationToken = default)
+    {
+        await Assets.Collection.Indexes.CreateOneAsync(
+            new CreateIndexModel<Asset>(Builders<Asset>.IndexKeys.Ascending(a => a.TagCode), new CreateIndexOptions { Unique = true }),
+            cancellationToken: cancellationToken);
+        await Assets.Collection.Indexes.CreateOneAsync(
+            new CreateIndexModel<Asset>(Builders<Asset>.IndexKeys.Ascending(a => a.TagNumber)),
+            cancellationToken: cancellationToken);
+        await RfidTags.Collection.Indexes.CreateOneAsync(
+            new CreateIndexModel<RfidTag>(Builders<RfidTag>.IndexKeys.Ascending(r => r.RfidCode), new CreateIndexOptions { Unique = true }),
+            cancellationToken: cancellationToken);
+        await RfidTags.Collection.Indexes.CreateOneAsync(
+            new CreateIndexModel<RfidTag>(
+                Builders<RfidTag>.IndexKeys.Ascending(r => r.AssetId),
+                new CreateIndexOptions { Unique = true, Sparse = true }),
+            cancellationToken: cancellationToken);
+        await UserAccounts.Collection.Indexes.CreateOneAsync(
+            new CreateIndexModel<UserAccount>(Builders<UserAccount>.IndexKeys.Ascending(u => u.Username), new CreateIndexOptions { Unique = true }),
+            cancellationToken: cancellationToken);
+        await Staff.Collection.Indexes.CreateOneAsync(
+            new CreateIndexModel<Staff>(Builders<Staff>.IndexKeys.Ascending(s => s.StaffId)),
+            cancellationToken: cancellationToken);
+        await AuditResults.Collection.Indexes.CreateOneAsync(
+            new CreateIndexModel<AuditResult>(
+                Builders<AuditResult>.IndexKeys.Combine(
+                    Builders<AuditResult>.IndexKeys.Ascending(a => a.AuditSessionId),
+                    Builders<AuditResult>.IndexKeys.Ascending(a => a.AssetId)),
+                new CreateIndexOptions { Unique = true }),
+            cancellationToken: cancellationToken);
+    }
+
+    public static void RegisterClassMaps()
+    {
+        if (BsonClassMap.IsClassMapRegistered(typeof(Asset)))
+        {
+            return;
+        }
+
+        RegisterMap<Asset>();
+        RegisterMap<AssetCategory>();
+        RegisterMap<Department>();
+        RegisterMap<Location>();
+        RegisterMap<Supplier>();
+        RegisterMap<RepairContractor>();
+        RegisterMap<Staff>();
+        RegisterMap<RfidTag>();
+        RegisterMap<AssetType>();
+        RegisterMap<Manufacturer>();
+        RegisterMap<AssetTransfer>();
+        RegisterMap<StockVerificationSession>();
+        RegisterMap<StockVerificationScan>();
+        RegisterMap<SystemAuditLog>();
+        RegisterMap<AssetAssignment>();
+        RegisterMap<AssetStatusHistory>();
+        RegisterMap<AssetRequest>();
+        RegisterMap<RepairRequest>();
+        RegisterMap<LoanRequest>();
+        RegisterMap<ExitGrant>();
+        RegisterMap<RfidEvent>();
+        RegisterMap<AuditSession>();
+        RegisterMap<AuditResult>();
+        RegisterMap<Notification>();
+        RegisterMap<ProcurementRecord>();
+        RegisterMap<IntegrationEventLog>();
+        RegisterMap<UserAccount>();
+    }
+
+    private MongoEntitySet<T> CreateSet<T>(string collectionName) where T : class
+        => new(database.GetCollection<T>(collectionName), idGenerator, collectionName);
+
+    private async Task SaveAllAsync(CancellationToken cancellationToken)
+    {
+        await Assets.SaveChangesAsync(cancellationToken);
+        await AssetCategories.SaveChangesAsync(cancellationToken);
+        await Departments.SaveChangesAsync(cancellationToken);
+        await Locations.SaveChangesAsync(cancellationToken);
+        await Suppliers.SaveChangesAsync(cancellationToken);
+        await RepairContractors.SaveChangesAsync(cancellationToken);
+        await Staff.SaveChangesAsync(cancellationToken);
+        await RfidTags.SaveChangesAsync(cancellationToken);
+        await AssetTypes.SaveChangesAsync(cancellationToken);
+        await Manufacturers.SaveChangesAsync(cancellationToken);
+        await AssetTransfers.SaveChangesAsync(cancellationToken);
+        await StockVerificationSessions.SaveChangesAsync(cancellationToken);
+        await StockVerificationScans.SaveChangesAsync(cancellationToken);
+        await SystemAuditLogs.SaveChangesAsync(cancellationToken);
+        await AssetAssignments.SaveChangesAsync(cancellationToken);
+        await AssetStatusHistories.SaveChangesAsync(cancellationToken);
+        await AssetRequests.SaveChangesAsync(cancellationToken);
+        await RepairRequests.SaveChangesAsync(cancellationToken);
+        await LoanRequests.SaveChangesAsync(cancellationToken);
+        await ExitGrants.SaveChangesAsync(cancellationToken);
+        await RfidEvents.SaveChangesAsync(cancellationToken);
+        await AuditSessions.SaveChangesAsync(cancellationToken);
+        await AuditResults.SaveChangesAsync(cancellationToken);
+        await Notifications.SaveChangesAsync(cancellationToken);
+        await ProcurementRecords.SaveChangesAsync(cancellationToken);
+        await IntegrationEventLogs.SaveChangesAsync(cancellationToken);
+        await UserAccounts.SaveChangesAsync(cancellationToken);
+    }
+
+    private static void RegisterMap<T>()
+    {
+        BsonClassMap.RegisterClassMap<T>(cm =>
+        {
+            cm.AutoMap();
+            cm.MapIdMember(typeof(T).GetProperty("Id")!);
+            cm.SetIgnoreExtraElements(true);
+        });
     }
 }

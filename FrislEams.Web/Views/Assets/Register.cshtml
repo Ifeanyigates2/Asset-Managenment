@@ -52,8 +52,13 @@
                 <input asp-for="SerialNumber" class="form-control" placeholder="Manufacturer serial number" />
             </div>
             <div class="form-group">
-                <label asp-for="RfidCode" class="form-label required">RFID Tag Code</label>
-                <input asp-for="RfidCode" class="form-control" placeholder="e.g. RFID-000123 (must be unique)" />
+                <label asp-for="TagNumber" class="form-label">Tag Number</label>
+                <input asp-for="TagNumber" class="form-control" placeholder="Physical asset tag number" />
+            </div>
+            <div class="form-group">
+                <label asp-for="RfidCode" class="form-label">RFID Code</label>
+                <input asp-for="RfidCode" class="form-control" placeholder="e.g. RFID-000123 (optional)" />
+                <div class="field-hint">Leave this blank if the RFID tag has not been issued yet.</div>
                 <span asp-validation-for="RfidCode" class="field-error"></span>
             </div>
         </div>
@@ -66,6 +71,9 @@
     <!-- Section 2: Procurement Details -->
     <div class="form-section">
         <h3 class="form-section-title">Procurement &amp; Financial Details</h3>
+        <div class="field-hint" style="margin-bottom:1rem;">
+            Purchase Cost and GL Account Code are recommended at registration time. If either is unavailable, the asset can still be created and Backoffice will be reminded to update it.
+        </div>
         <div class="form-grid-2">
             <div class="form-group">
                 <label asp-for="PurchaseDate" class="form-label">Purchase Date</label>

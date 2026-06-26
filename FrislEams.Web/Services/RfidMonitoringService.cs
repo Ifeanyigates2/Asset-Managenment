@@ -1,7 +1,6 @@
 using FrislEams.Web.Data;
 using FrislEams.Web.Domain;
 using FrislEams.Web.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace FrislEams.Web.Services;
 
@@ -9,7 +8,13 @@ public class RfidMonitoringService(AppDbContext db)
 {
     public async Task<(string Outcome, bool Alert, string Message)> ProcessDoorScanAsync(string rfidCode, string doorLocation)
     {
-        var tag = await db.RfidTags.Include(r => r.Asset).FirstOrDefaultAsync(r => r.RfidCode == rfidCode && r.IsActive);
+        var tag = await db.RfidTags.AsQueryable()
+            .Where(r => r.RfidCode == rfidCode && r.IsActive)
+            .FirstOrDefaultAsync();
+        if (tag is not null)
+        {
+            MongoHydrator.HydrateRfidTags([tag], db);
+        }
 
         if (tag is null)
         {
@@ -37,7 +42,7 @@ public class RfidMonitoringService(AppDbContext db)
         }
 
         var asset = tag.Asset!;
-        var activeGrant = await db.ExitGrants.AnyAsync(g => g.AssetId == asset.Id && g.IsActive && g.GrantEndDate >= DateTime.UtcNow);
+        var activeGrant = await db.ExitGrants.AsQueryable().AnyAsync(g => g.AssetId == asset.Id && g.IsActive && g.GrantEndDate >= DateTime.UtcNow);
         var isLoanedOut = asset.CurrentStatus is AssetStatus.LoanedOutExternal or AssetStatus.LoanedOutInternal;
         var allowed = activeGrant || isLoanedOut;
 

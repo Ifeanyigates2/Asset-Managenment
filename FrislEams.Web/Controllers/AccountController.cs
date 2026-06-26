@@ -1,46 +1,152 @@
+using FrislEams.Web.Data;
+using FrislEams.Web.Models;
+using FrislEams.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FrislEams.Web.Controllers;
 
-public class AccountController : Controller
+public class AccountController(AppDbContext db) : Controller
 {
-    private static readonly Dictionary<string, (string Password, string Role, string DisplayName)> DemoUsers = new()
-    {
-        ["admin"]   = ("admin123",   "Admin",   "Admin User"),
-        ["auditor"] = ("audit123",   "Auditor", "Audit Officer"),
-        ["staff"]   = ("staff123",   "Staff",   "Staff Member"),
-        ["viewer"]  = ("viewer123",  "Viewer",  "Read-Only Viewer"),
-    };
-
     [HttpGet("/Account/Login")]
     public IActionResult Login(string? returnUrl = null)
     {
         ViewBag.ReturnUrl = returnUrl;
-        return View();
+        return View("Login");
     }
 
     [HttpPost("/Account/Login")]
-    public IActionResult Login(string username, string password, string? returnUrl = null)
+    public async Task<IActionResult> Login(string username, string password, string? returnUrl = null)
     {
-        if (!string.IsNullOrWhiteSpace(username) &&
-            DemoUsers.TryGetValue(username.ToLower().Trim(), out var user) &&
-            user.Password == password)
+        var user = await TryAuthenticateAsync(username, password);
+        if (user is not null)
         {
-            HttpContext.Session.SetString("UserName", user.DisplayName);
-            HttpContext.Session.SetString("UserRole", user.Role);
-            TempData["Success"] = $"Welcome, {user.DisplayName}!";
-            return Redirect(returnUrl ?? "/");
+            return SignInUser(user, returnUrl);
         }
 
         ViewBag.ReturnUrl = returnUrl;
         ViewBag.Error = "Invalid username or password. Please try again.";
-        return View();
+        return View("Login");
+    }
+
+    [HttpGet("/Account/Login/{portal}")]
+    public IActionResult LoginPortal(string portal, string? returnUrl = null)
+    {
+        if (!PortalService.IsKnownPortal(portal))
+        {
+            return RedirectToAction(nameof(Login), new { returnUrl });
+        }
+
+        ViewBag.ReturnUrl = returnUrl;
+        ViewBag.Portal = PortalService.NormalizePortal(portal);
+        ViewBag.DemoUser = PortalService.GetDemoUsername(portal);
+        return View("LoginPortal");
+    }
+
+    [HttpPost("/Account/Login/{portal}")]
+    public async Task<IActionResult> LoginPortal(string portal, string username, string password, string? returnUrl = null)
+    {
+        if (!PortalService.IsKnownPortal(portal))
+        {
+            return RedirectToAction(nameof(Login), new { returnUrl });
+        }
+
+        var user = await TryAuthenticateAsync(username, password);
+        if (user is not null)
+        {
+            return SignInUser(user, returnUrl);
+        }
+
+        ViewBag.ReturnUrl = returnUrl;
+        ViewBag.Portal = PortalService.NormalizePortal(portal);
+        ViewBag.DemoUser = PortalService.GetDemoUsername(portal);
+        ViewBag.Error = "Invalid username or password. Please try again.";
+        return View("LoginPortal");
     }
 
     [HttpGet("/Account/Logout")]
     public IActionResult Logout()
     {
         HttpContext.Session.Clear();
-        return RedirectToAction("Login");
+        return RedirectToAction(nameof(Login));
+    }
+
+    [HttpGet("/Account/Profile")]
+    public IActionResult Profile()
+    {
+        ViewData["Title"] = "Profile";
+        ViewBag.DisplayName = HttpContext.Session.GetString("UserName");
+        ViewBag.Username = HttpContext.Session.GetString("LoginUsername");
+        ViewBag.Role = HttpContext.Session.GetString("UserRole");
+        ViewBag.Portal = HttpContext.Session.GetString("UserPortal");
+        return View();
+    }
+
+    private async Task<Models.UserAccount?> TryAuthenticateAsync(string? username, string? password)
+    {
+        var normalizedUsername = username?.Trim().ToLower();
+        if (string.IsNullOrWhiteSpace(normalizedUsername) || string.IsNullOrWhiteSpace(password))
+        {
+            return null;
+        }
+
+        var user = await db.UserAccounts.AsQueryable()
+            .FirstOrDefaultAsync(u => u.Username.ToLower() == normalizedUsername);
+
+        if (user is null || !user.IsActive || user.Password != password)
+        {
+            return null;
+        }
+
+        return user;
+    }
+
+    private IActionResult SignInUser(Models.UserAccount user, string? returnUrl)
+    {
+        var portal = PortalService.GetPortalForRole(user.Role);
+        HttpContext.Session.SetString("UserName", user.DisplayName);
+        HttpContext.Session.SetString("LoginUsername", user.Username);
+        HttpContext.Session.SetString("UserRole", user.Role);
+        HttpContext.Session.SetString("UserPortal", portal);
+        HttpContext.Session.SetString("MustChangePassword", user.MustChangePassword ? "1" : "0");
+        TempData["Success"] = $"Welcome to the {portal} portal, {user.DisplayName}!";
+
+        if (user.MustChangePassword)
+        {
+            return RedirectToAction(nameof(ChangePassword));
+        }
+
+        return Redirect(returnUrl ?? PortalService.GetHomePath(user.Role));
+    }
+
+    [HttpGet("/Account/ChangePassword")]
+    public IActionResult ChangePassword()
+    {
+        ViewData["Title"] = "Change Password";
+        return View(new ChangePasswordVm());
+    }
+
+    [HttpPost("/Account/ChangePassword")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(ChangePasswordVm vm)
+    {
+        if (!ModelState.IsValid) return View(vm);
+
+        var username = HttpContext.Session.GetString("LoginUsername");
+        if (string.IsNullOrWhiteSpace(username)) return RedirectToAction(nameof(Login));
+
+        var user = await db.UserAccounts.AsQueryable().FirstOrDefaultAsync(u => u.Username == username);
+        if (user is null || user.Password != vm.CurrentPassword)
+        {
+            ModelState.AddModelError(string.Empty, "Current password is incorrect.");
+            return View(vm);
+        }
+
+        user.Password = vm.NewPassword;
+        user.MustChangePassword = false;
+        user.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        HttpContext.Session.SetString("MustChangePassword", "0");
+        TempData["Success"] = "Password updated successfully.";
+        return Redirect(PortalService.GetHomePath(user.Role));
     }
 }

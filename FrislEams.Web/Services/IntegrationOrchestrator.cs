@@ -70,7 +70,7 @@ public class IntegrationOrchestrator(AppDbContext db, RfidMonitoringService rfid
                 Status = "Synced"
             });
 
-            var storageId = db.Locations.Where(l => l.Code == "STORAGE").Select(l => l.Id).FirstOrDefault();
+            var storageId = db.Locations.AsQueryable().Where(l => l.Code == "STORAGE").Select(l => l.Id).FirstOrDefault();
 
             for (var i = 0; i < item.Quantity; i++)
             {

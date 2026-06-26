@@ -1,0 +1,52 @@
+@model List<FrislEams.Web.Models.StockVerificationSession>
+@{
+    ViewData["Title"] = "RFID Stock Verification";
+    var departments = ViewBag.Departments as List<FrislEams.Web.Models.Department> ?? new();
+    var locations = ViewBag.Locations as List<FrislEams.Web.Models.Location> ?? new();
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>RFID Stock Verification</h1>
+        <p class="page-subtitle">Walk through an area with the handheld reader — results: Found, Missing, Unexpected, Duplicate</p>
+    </div>
+</div>
+
+<div class="form-card" style="margin-bottom:1.5rem;">
+    <h3>Start Verification</h3>
+    <form asp-action="Start" method="post" class="form-inline">
+        @Html.AntiForgeryToken()
+        <select name="departmentId" class="form-control" style="max-width:220px;display:inline-block;">
+            <option value="">All departments</option>
+            @foreach (var d in departments) { <option value="@d.Id">@d.Name</option> }
+        </select>
+        <select name="locationId" class="form-control" style="max-width:220px;display:inline-block;">
+            <option value="">All locations</option>
+            @foreach (var l in locations) { <option value="@l.Id">@l.Name</option> }
+        </select>
+        <button type="submit" class="btn btn-primary">Start Stock Verification</button>
+    </form>
+</div>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr><th>Started</th><th>By</th><th>Status</th><th>Found</th><th>Missing</th><th>Unexpected</th><th>Duplicate</th><th></th></tr>
+        </thead>
+        <tbody>
+        @foreach (var s in Model)
+        {
+            <tr>
+                <td>@s.StartedAt.ToString("dd MMM yyyy HH:mm")</td>
+                <td>@s.InitiatedBy</td>
+                <td>@s.Status</td>
+                <td>@s.FoundCount</td>
+                <td>@s.MissingCount</td>
+                <td>@s.UnexpectedCount</td>
+                <td>@s.DuplicateCount</td>
+                <td><a asp-action="Session" asp-route-id="@s.Id">Open</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

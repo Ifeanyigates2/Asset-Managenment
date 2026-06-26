@@ -112,7 +112,7 @@
                             <form asp-action="ApproveLoan" method="post">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="LoanRequestId" value="@l.Id" />
-                                <input name="ApprovedBy" class="form-control form-control-sm" value="@(Context.Session.GetString("UserName") ?? "Admin")" required />
+                                <input name="ApprovedBy" class="form-control form-control-sm" value="@(Context.Session.GetString("UserName") ?? "Backoffice")" required />
                                 <button type="submit" class="btn btn-success btn-sm" style="margin-top:4px;">Approve &amp; Grant</button>
                             </form>
                         </td>

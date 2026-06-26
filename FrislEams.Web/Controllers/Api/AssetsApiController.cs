@@ -3,7 +3,6 @@ using FrislEams.Web.Domain;
 using FrislEams.Web.Models;
 using FrislEams.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FrislEams.Web.Controllers.Api;
 
@@ -40,7 +39,7 @@ public class AssetsApiController(
     [HttpPost("register")]
     public async Task<IActionResult> RegisterAsset([FromBody] AssetRegistrationVm vm)
     {
-        if (!roleGuard.HasAnyRole(this, RoleName.Admin))
+        if (!roleGuard.HasAnyRole(this, RoleName.Backoffice, RoleName.Auditor))
         {
             return Forbid();
         }
@@ -50,7 +49,7 @@ public class AssetsApiController(
             return ValidationProblem(ModelState);
         }
 
-        if (await db.RfidTags.AnyAsync(r => r.RfidCode == vm.RfidCode.Trim()))
+        if (await db.RfidTags.AsQueryable().AnyAsync(r => r.RfidCode == vm.RfidCode.Trim()))
         {
             return Conflict("RFID code already exists.");
         }
@@ -67,6 +66,7 @@ public class AssetsApiController(
             StateOfPurchase = vm.StateOfPurchase,
             SupplierId = vm.SupplierId,
             SerialNumber = vm.SerialNumber,
+            TagNumber = vm.TagNumber,
             WarrantyExpiryDate = vm.WarrantyExpiryDate,
             ExpectedServiceYears = vm.ExpectedServiceYears,
             CurrentCondition = vm.CurrentCondition,
@@ -88,7 +88,7 @@ public class AssetsApiController(
     [HttpPost("{id:int}/status")]
     public async Task<IActionResult> ChangeStatus(int id, [FromBody] StatusChangeVm vm)
     {
-        if (!roleGuard.HasAnyRole(this, RoleName.Admin))
+        if (!roleGuard.HasAnyRole(this, RoleName.Backoffice))
         {
             return Forbid();
         }

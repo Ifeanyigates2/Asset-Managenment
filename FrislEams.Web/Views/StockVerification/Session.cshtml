@@ -1,0 +1,54 @@
+@model FrislEams.Web.Models.StockVerificationSession
+@{
+    ViewData["Title"] = "Stock Verification Session";
+    var scans = ViewBag.Scans as List<FrislEams.Web.Models.StockVerificationScan> ?? new();
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Stock Verification #@Model.Id</h1>
+        <p class="page-subtitle">Status: @Model.Status — scan tagged assets in the area</p>
+    </div>
+</div>
+
+<div class="portal-stat-row">
+    <div class="portal-stat-card"><div class="label">Found</div><div class="value">@Model.FoundCount</div></div>
+    <div class="portal-stat-card"><div class="label">Missing</div><div class="value">@Model.MissingCount</div></div>
+    <div class="portal-stat-card"><div class="label">Unexpected</div><div class="value">@Model.UnexpectedCount</div></div>
+    <div class="portal-stat-card"><div class="label">Duplicate</div><div class="value">@Model.DuplicateCount</div></div>
+</div>
+
+@if (Model.Status == "InProgress")
+{
+    <div class="form-card" style="margin:1rem 0;">
+        <form asp-action="Scan" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="sessionId" value="@Model.Id" />
+            <input type="text" name="rfidCode" class="form-control" placeholder="Scan RFID tag" required autofocus style="max-width:320px;display:inline-block;" />
+            <button type="submit" class="btn btn-primary">Record Scan</button>
+        </form>
+        <form asp-action="Complete" method="post" style="margin-top:0.75rem;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="sessionId" value="@Model.Id" />
+            <button type="submit" class="btn btn-outline">Complete &amp; Generate Report</button>
+        </form>
+    </div>
+}
+
+<div class="table-card">
+    <table class="data-table">
+        <thead><tr><th>Time</th><th>RFID</th><th>Result</th></tr></thead>
+        <tbody>
+        @foreach (var scan in scans)
+        {
+            <tr>
+                <td>@scan.ScannedAt.ToString("HH:mm:ss")</td>
+                <td><code>@scan.RfidCode</code></td>
+                <td><span class="badge @(scan.ResultType == "Found" ? "badge-success" : scan.ResultType == "Missing" ? "badge-danger" : "badge-warning")">@scan.ResultType</span></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<a asp-action="Index" class="btn btn-outline">Back to sessions</a>

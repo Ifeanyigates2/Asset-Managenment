@@ -1,67 +1,79 @@
 @{
     Layout = "_LoginLayout";
+    var returnUrl = ViewBag.ReturnUrl as string;
 }
 
 <div class="signin-page">
-    <div class="signin-bg-pattern"></div>
+    <div class="signin-shell">
+        <section class="signin-panel signin-panel-solo">
+            <div class="signin-card signin-card-minimal">
+                <div class="signin-branding">
+                    <img src="~/firstregistrars-logo.png" alt="First Registrars &amp; Investor Services" class="signin-logo" />
+                    <div class="signin-subtitle">Enterprise Asset Management System</div>
+                </div>
 
-    <div class="signin-card" style="position:relative;z-index:1;">
-        <div class="signin-logo">
-            <img src="~/firstregistrars-logo.png" alt="First Registrars & Investor Services" />
-            <div class="signin-subtitle">Enterprise Asset Management System</div>
-        </div>
+                <div class="signin-title-wrap">
+                    <div class="signin-title">Sign In</div>
+                    <div class="signin-desc">Enter your username and password to access your portal</div>
+                </div>
 
-        <div class="signin-gold-bar"></div>
+                <div class="signin-gold-bar"></div>
 
-        <div class="signin-title">Sign In</div>
-        <div class="signin-desc">Enter your credentials to access the EAMS portal</div>
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-error signin-alert">⚠️ @ViewBag.Error</div>
+                }
 
-        @if (ViewBag.Error != null)
-        {
-            <div class="alert error" style="margin-bottom:1rem;">⚠️ @ViewBag.Error</div>
-        }
+                <form method="post" action="/Account/Login?returnUrl=@returnUrl" class="signin-form" id="loginForm">
+                    @Html.AntiForgeryToken()
+                    <div class="form-group">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" id="username" name="username" class="form-control signin-input" placeholder="Enter your username"
+                               autocomplete="username" autofocus required />
+                    </div>
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" id="password" name="password" class="form-control signin-input" placeholder="Enter your password"
+                               autocomplete="current-password" required />
+                    </div>
+                    <button type="submit" class="signin-btn">Sign In <span aria-hidden="true">→</span></button>
+                </form>
 
-        <form method="post" action="/Account/Login?returnUrl=@ViewBag.ReturnUrl" class="signin-form">
-            @Html.AntiForgeryToken()
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Enter your username"
-                       autocomplete="username" autofocus required />
+                <div class="signin-demo-note signin-demo-note-minimal">
+                    <div class="signin-demo-head">
+                        <strong>Demo - Click to Auto-Fill</strong>
+                    </div>
+                    <div class="signin-demo-grid signin-demo-grid-inline signin-demo-grid-portals">
+                        <button type="button" class="role-pill role-pill-minimal portal-demo-btn" data-user="Washington" data-password="Washington1">
+                            <span class="role-pill-title">Backoffice Portal</span>
+                        </button>
+                        <button type="button" class="role-pill role-pill-minimal portal-demo-btn" data-user="Admin" data-password="Admin1">
+                            <span class="role-pill-title">Admin Portal</span>
+                        </button>
+                        <button type="button" class="role-pill role-pill-minimal portal-demo-btn" data-user="Auditor" data-password="auditor1">
+                            <span class="role-pill-title">Auditor Portal</span>
+                        </button>
+                        <button type="button" class="role-pill role-pill-minimal portal-demo-btn" data-user="Staff" data-password="Staff1">
+                            <span class="role-pill-title">Staff Portal</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="signin-footer">
+                    &copy; @DateTime.Now.Year First Registrars &amp; Investor Services Ltd.<br />
+                    All rights reserved. Authorised access only.
+                </div>
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Enter your password"
-                       autocomplete="current-password" required />
-            </div>
-            <button type="submit" class="signin-btn">Sign In →</button>
-        </form>
-
-        <div class="signin-demo-note">
-            <strong>🔑 Demo Credentials</strong>
-            Click a role below to auto-fill login details:
-            <div class="role-pills" style="margin-top:0.5rem;">
-                <button type="button" class="role-pill"
-                        onclick="document.getElementById('username').value='admin';document.getElementById('password').value='admin123'">
-                    Admin
-                </button>
-                <button type="button" class="role-pill"
-                        onclick="document.getElementById('username').value='auditor';document.getElementById('password').value='audit123'">
-                    Auditor
-                </button>
-                <button type="button" class="role-pill"
-                        onclick="document.getElementById('username').value='staff';document.getElementById('password').value='staff123'">
-                    Staff
-                </button>
-                <button type="button" class="role-pill"
-                        onclick="document.getElementById('username').value='viewer';document.getElementById('password').value='viewer123'">
-                    Viewer
-                </button>
-            </div>
-        </div>
-
-        <div class="signin-footer">
-            &copy; @DateTime.Now.Year First Registrars &amp; Investor Services Ltd.<br/>
-            All rights reserved. Authorised access only.
-        </div>
+        </section>
     </div>
 </div>
+
+<script>
+    const demoPassword = 'Admin1';
+    document.querySelectorAll('.portal-demo-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('username').value = btn.dataset.user;
+            document.getElementById('password').value = btn.dataset.password || demoPassword;
+        });
+    });
+</script>

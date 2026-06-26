@@ -1,0 +1,28 @@
+@{
+    ViewData["Title"] = ViewBag.Portal == "Admin" ? "System Settings" : "Settings";
+    var isAdmin = ViewBag.Portal as string == "Admin";
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>@ViewData["Title"]</h1>
+        <p class="page-subtitle">@(isAdmin ? "System configuration, integrations, and preferences" : "Operational settings and department configuration")</p>
+    </div>
+</div>
+
+<div class="cards-grid cards-grid-2">
+    @if (isAdmin)
+    {
+        <a asp-controller="UserRoles" asp-action="Index" class="quick-link-card"><div class="ql-icon" style="background:#e8f5e9;">🔐</div><span class="label">Users &amp; Roles</span></a>
+        <a asp-controller="Vendors" asp-action="Index" class="quick-link-card"><div class="ql-icon" style="background:#e8f5e9;">🏢</div><span class="label">Vendors</span></a>
+        <a href="/dashboard" class="quick-link-card"><div class="ql-icon" style="background:#e8f5e9;">📊</div><span class="label">Analytics Dashboard</span></a>
+        <a asp-controller="Workflow" asp-action="Rfid" class="quick-link-card"><div class="ql-icon" style="background:#e8f5e9;">📡</div><span class="label">RFID Devices</span></a>
+    }
+    else
+    {
+        <a asp-controller="Assignments" asp-action="Index" class="quick-link-card"><div class="ql-icon" style="background:#e8f0fb;">📋</div><span class="label">Assignment Rules</span></a>
+        <a asp-controller="Movements" asp-action="Index" class="quick-link-card"><div class="ql-icon" style="background:#e8f0fb;">🔄</div><span class="label">Movement Policies</span></a>
+        <a asp-controller="Reports" asp-action="Index" class="quick-link-card"><div class="ql-icon" style="background:#e8f0fb;">📈</div><span class="label">Report Defaults</span></a>
+        <a asp-controller="Exceptions" asp-action="Index" class="quick-link-card"><div class="ql-icon" style="background:#e8f0fb;">⚠️</div><span class="label">Exception Handling</span></a>
+    }
+</div>

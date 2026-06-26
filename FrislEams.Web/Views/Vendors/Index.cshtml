@@ -1,0 +1,108 @@
+@model List<VendorVm>
+@{
+    ViewData["Title"] = "Vendor Setup";
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Vendor Setup</h1>
+        <p class="page-subtitle">MongoDB-backed vendor master data from the <span class="monospace">vendors</span> collection</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">+ Add Vendor</a>
+</div>
+
+<div class="cards-grid cards-grid-3" style="margin-bottom:1.5rem;">
+    <div class="metric-card">
+        <div class="metric-label">Total Vendors</div>
+        <div class="metric-value">@Model.Count</div>
+        <div class="metric-sub">records in MongoDB</div>
+    </div>
+    <div class="metric-card success">
+        <div class="metric-label">Active</div>
+        <div class="metric-value">@Model.Count(v => v.IsActive)</div>
+        <div class="metric-sub">available for procurement/asset setup</div>
+    </div>
+    <div class="metric-card navy">
+        <div class="metric-label">Inactive</div>
+        <div class="metric-value">@Model.Count(v => !v.IsActive)</div>
+        <div class="metric-sub">deactivated vendor records</div>
+    </div>
+</div>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Vendor Name</th>
+                <th>Code</th>
+                <th>Category</th>
+                <th>Contact Person</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Registered</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var vendor in Model)
+        {
+            <tr>
+                <td>
+                    <strong>@vendor.Name</strong>
+                    @if (!string.IsNullOrWhiteSpace(vendor.Address))
+                    {
+                        <div class="text-muted" style="font-size:0.76rem;">@vendor.Address</div>
+                    }
+                </td>
+                <td class="monospace" style="font-size:0.82rem;">@vendor.Code</td>
+                <td>
+                    @if (!string.IsNullOrWhiteSpace(vendor.Category))
+                    {
+                        <span class="badge badge-info" style="font-size:0.75rem;">@vendor.Category</span>
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </td>
+                <td>@(string.IsNullOrWhiteSpace(vendor.ContactPerson) ? "—" : vendor.ContactPerson)</td>
+                <td style="font-size:0.82rem;">@(string.IsNullOrWhiteSpace(vendor.Phone) ? "—" : vendor.Phone)</td>
+                <td style="font-size:0.82rem;">
+                    @if (!string.IsNullOrWhiteSpace(vendor.Email))
+                    {
+                        <a href="mailto:@vendor.Email">@vendor.Email</a>
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </td>
+                <td>
+                    <span class="badge @(vendor.IsActive ? "badge-success" : "badge-muted")">
+                        @(vendor.IsActive ? "Active" : "Inactive")
+                    </span>
+                </td>
+                <td style="font-size:0.82rem;white-space:nowrap;">@vendor.RegisteredAt.ToString("dd MMM yyyy")</td>
+                <td>
+                    <div class="action-links">
+                        <a asp-action="Edit" asp-route-id="@vendor.Id" class="btn btn-xs btn-outline">Edit</a>
+                        <form asp-action="ToggleActive" method="post" style="display:inline;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@vendor.Id" />
+                            <button type="submit" class="btn btn-xs @(vendor.IsActive ? "btn-danger" : "btn-success")"
+                                    onclick="return confirm('@(vendor.IsActive ? "Deactivate" : "Activate") @vendor.Name?')">
+                                @(vendor.IsActive ? "Deactivate" : "Activate")
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="9" class="empty-state">No vendors have been created yet. Click "+ Add Vendor" to begin.</td></tr>
+        }
+        </tbody>
+    </table>
+</div>

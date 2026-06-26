@@ -2,7 +2,6 @@ using System.Text;
 using FrislEams.Web.Data;
 using FrislEams.Web.Domain;
 using FrislEams.Web.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace FrislEams.Web.Services;
 
@@ -10,13 +9,7 @@ public class ReportingService(AppDbContext db)
 {
     public async Task<List<Asset>> GetAssetsReportAsync(ReportFilterVm filter)
     {
-        var query = db.Assets
-            .Include(a => a.AssetCategory)
-            .Include(a => a.CurrentDepartment)
-            .Include(a => a.CurrentLocation)
-            .Include(a => a.CurrentCustodian)
-            .Include(a => a.Supplier)
-            .AsQueryable();
+        var query = db.Assets.AsQueryable();
 
         if (filter.FromDate.HasValue)
             query = query.Where(a => a.PurchaseDate >= filter.FromDate.Value);
@@ -31,7 +24,9 @@ public class ReportingService(AppDbContext db)
         if (!string.IsNullOrWhiteSpace(filter.Condition))
             query = query.Where(a => a.CurrentCondition == filter.Condition);
 
-        return await query.OrderByDescending(a => a.CreatedAt).ToListAsync();
+        var assets = await query.OrderByDescending(a => a.CreatedAt).ToListAsync();
+        MongoHydrator.HydrateAssets(assets, db);
+        return assets;
     }
 
     public string BuildAssetsCsv(List<Asset> assets)
@@ -53,19 +48,21 @@ public class ReportingService(AppDbContext db)
 
     public async Task<Dictionary<string, int>> GetAssetCountByCategoryAsync()
     {
-        return await db.Assets
-            .Include(a => a.AssetCategory)
+        var assets = await db.Assets.AsQueryable().ToListAsync();
+        MongoHydrator.HydrateAssets(assets, db);
+        return assets
+            .Where(a => a.AssetCategory != null)
             .GroupBy(a => a.AssetCategory!.Name)
-            .Select(g => new { Category = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.Category, x => x.Count);
+            .ToDictionary(g => g.Key, g => g.Count());
     }
 
     public async Task<List<DepreciationRowVm>> GetDepreciationReportAsync()
     {
-        var assets = await db.Assets
-            .Include(a => a.AssetCategory)
-            .Where(a => a.PurchaseDate.HasValue && a.PurchaseCost.HasValue && a.AssetCategory != null)
+        var assets = await db.Assets.AsQueryable()
+            .Where(a => a.PurchaseDate.HasValue && a.PurchaseCost.HasValue)
             .ToListAsync();
+        MongoHydrator.HydrateAssets(assets, db);
+        assets = assets.Where(a => a.AssetCategory != null).ToList();
 
         var today = DateTime.UtcNow.Date;
         var report = new List<DepreciationRowVm>(assets.Count);
@@ -117,11 +114,8 @@ public class ReportingService(AppDbContext db)
 
     public async Task<List<AgingRowVm>> GetAgingReportAsync()
     {
-        var assets = await db.Assets
-            .Include(a => a.AssetCategory)
-            .Include(a => a.CurrentDepartment)
-            .Include(a => a.CurrentLocation)
-            .ToListAsync();
+        var assets = await db.Assets.AsQueryable().ToListAsync();
+        MongoHydrator.HydrateAssets(assets, db);
 
         var today = DateTime.UtcNow.Date;
         var report = new List<AgingRowVm>(assets.Count);

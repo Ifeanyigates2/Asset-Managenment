@@ -1,0 +1,79 @@
+@model VendorVm
+@{
+    ViewData["Title"] = "Add Vendor";
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Add Vendor</h1>
+        <p class="page-subtitle">Create a new vendor record in the MongoDB <span class="monospace">vendors</span> collection.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline">← Back to Vendors</a>
+</div>
+
+<form asp-action="Create" method="post" class="form-card">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-error"></div>
+
+    <div class="form-section">
+        <h3 class="form-section-title">Vendor Information</h3>
+        <div class="form-grid-2">
+            <div class="form-group">
+                <label asp-for="Name" class="form-label required">Vendor Name</label>
+                <input asp-for="Name" class="form-control" placeholder="e.g. TechMart Nigeria Ltd" required />
+                <span asp-validation-for="Name" class="field-error"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Code" class="form-label required">Vendor Code</label>
+                <input asp-for="Code" class="form-control" placeholder="e.g. TECHM" required />
+                <div class="field-hint">Unique code stored in MongoDB.</div>
+                <span asp-validation-for="Code" class="field-error"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Category" class="form-label">Vendor Category</label>
+                <select asp-for="Category" class="form-control">
+                    <option value="">-- Select Category --</option>
+                    <option value="IT Equipment">IT Equipment</option>
+                    <option value="Office Furniture">Office Furniture</option>
+                    <option value="Networking">Networking</option>
+                    <option value="Security Systems">Security Systems</option>
+                    <option value="Vehicles">Vehicles</option>
+                    <option value="Facilities">Facilities</option>
+                    <option value="General Supplies">General Supplies</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label asp-for="ContactPerson" class="form-label">Contact Person</label>
+                <input asp-for="ContactPerson" class="form-control" placeholder="Primary contact name" />
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3 class="form-section-title">Contact Details</h3>
+        <div class="form-grid-2">
+            <div class="form-group">
+                <label asp-for="Phone" class="form-label">Phone Number</label>
+                <input asp-for="Phone" class="form-control" placeholder="+234 800 000 0000" />
+            </div>
+            <div class="form-group">
+                <label asp-for="Email" class="form-label">Email Address</label>
+                <input asp-for="Email" type="email" class="form-control" placeholder="contact@vendor.com" />
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+                <label asp-for="Address" class="form-label">Address</label>
+                <textarea asp-for="Address" class="form-control" rows="2" placeholder="Vendor office address"></textarea>
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+                <label asp-for="Notes" class="form-label">Notes</label>
+                <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Any notes about this vendor"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-lg">Add Vendor</button>
+        <a asp-action="Index" class="btn btn-outline btn-lg">Cancel</a>
+    </div>
+</form>

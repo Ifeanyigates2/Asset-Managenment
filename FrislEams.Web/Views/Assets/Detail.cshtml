@@ -29,6 +29,7 @@
     </div>
     <div class="flex-gap">
         <a asp-action="Index" class="btn btn-outline">← All Assets</a>
+        <a asp-controller="RfidTags" asp-action="Assign" asp-route-assetId="@Model.Id" class="btn btn-outline">@(rfidTag == null ? "Assign RFID Tag" : "Manage RFID Tag")</a>
         @if (Model.CurrentStatus == AssetStatus.RegisteredUnassigned || Model.CurrentStatus == AssetStatus.RecalledToStorage)
         {
             <a asp-controller="Assignments" asp-action="Create" asp-route-assetId="@Model.Id" class="btn btn-primary">Assign Asset</a>
@@ -48,7 +49,8 @@
             <h3 class="info-card-title">Asset Identification</h3>
             <div class="detail-pairs">
                 <div class="detail-pair"><span class="dp-label">Tag Code</span><span class="dp-value monospace">@Model.TagCode</span></div>
-                <div class="detail-pair"><span class="dp-label">RFID Tag</span><span class="dp-value monospace">@(rfidTag?.RfidCode ?? "Not registered")</span></div>
+                <div class="detail-pair"><span class="dp-label">Tag Number</span><span class="dp-value monospace">@(Model.TagNumber ?? "—")</span></div>
+                <div class="detail-pair"><span class="dp-label">RFID Tag</span><span class="dp-value monospace">@(rfidTag?.RfidCode ?? "Not RFID-enabled") @(rfidTag != null ? $"({rfidTag.TagStatus})" : "")</span></div>
                 <div class="detail-pair"><span class="dp-label">Asset Name</span><span class="dp-value">@Model.AssetName</span></div>
                 <div class="detail-pair"><span class="dp-label">Category</span><span class="dp-value">@Model.AssetCategory?.Name</span></div>
                 <div class="detail-pair"><span class="dp-label">Brand</span><span class="dp-value">@(Model.Brand ?? "—")</span></div>
@@ -112,7 +114,7 @@
                     }
                 </select>
                 <input name="Reason" class="form-control" placeholder="Reason for status change (required)" required style="flex:1;" />
-                <input name="ChangedBy" value="@(Context.Session.GetString("UserName") ?? "Admin")" type="hidden" />
+                <input name="ChangedBy" value="@(Context.Session.GetString("UserName") ?? "Backoffice")" type="hidden" />
                 <button type="submit" class="btn btn-warning">Apply</button>
             </form>
         </div>

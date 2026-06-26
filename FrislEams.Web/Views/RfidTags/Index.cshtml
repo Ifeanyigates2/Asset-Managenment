@@ -1,0 +1,39 @@
+@model List<FrislEams.Web.Models.RfidTag>
+@{
+    ViewData["Title"] = "RFID Tag Management";
+    var assets = ViewBag.Assets as Dictionary<int, FrislEams.Web.Models.Asset> ?? new();
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>RFID Tag Management</h1>
+        <p class="page-subtitle">Assign, replace, remove, and verify RFID tags — statuses: Blank, Assigned, Active, Damaged, Lost, Retired</p>
+    </div>
+</div>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr><th>EPC / RFID Code</th><th>Asset</th><th>Status</th><th>Active</th><th>Encoded</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var tag in Model)
+        {
+            var asset = tag.AssetId.HasValue && assets.ContainsKey(tag.AssetId.Value) ? assets[tag.AssetId.Value] : null;
+            <tr>
+                <td><code>@tag.RfidCode</code></td>
+                <td>@(asset != null ? $"{asset.TagCode} — {asset.AssetName}" : "—")</td>
+                <td><span class="badge badge-info">@tag.TagStatus</span></td>
+                <td>@(tag.IsActive ? "Yes" : "No")</td>
+                <td style="font-size:0.85rem;">@(tag.EncodedAt?.ToString("dd MMM yyyy") ?? "—")</td>
+                <td>
+                    @if (asset != null)
+                    {
+                        <a asp-action="Assign" asp-route-assetId="@asset.Id" class="btn btn-sm btn-outline">Manage</a>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

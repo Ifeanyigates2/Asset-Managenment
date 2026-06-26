@@ -1,15 +1,19 @@
 using FrislEams.Web.Data;
+using FrislEams.Web.Domain;
 using FrislEams.Web.Models;
+using FrislEams.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FrislEams.Web.Controllers;
 
-public class ContractorsController(AppDbContext db) : Controller
+public class ContractorsController(AppDbContext db, RoleGuard roleGuard) : Controller
 {
     [HttpGet]
     public async Task<IActionResult> Index()
     {
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin))
+            return Forbid();
+
         var contractors = await db.RepairContractors
             .OrderBy(c => c.Name)
             .ToListAsync();
@@ -19,6 +23,9 @@ public class ContractorsController(AppDbContext db) : Controller
     [HttpGet]
     public IActionResult Create()
     {
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin))
+            return Forbid();
+
         return View(new RepairContractor());
     }
 
@@ -26,6 +33,9 @@ public class ContractorsController(AppDbContext db) : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(RepairContractor vm)
     {
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin))
+            return Forbid();
+
         if (!ModelState.IsValid)
             return View(vm);
 
@@ -47,6 +57,9 @@ public class ContractorsController(AppDbContext db) : Controller
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin))
+            return Forbid();
+
         var contractor = await db.RepairContractors.FindAsync(id);
         if (contractor is null) return NotFound();
         return View(contractor);
@@ -56,6 +69,9 @@ public class ContractorsController(AppDbContext db) : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, RepairContractor vm)
     {
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin))
+            return Forbid();
+
         var contractor = await db.RepairContractors.FindAsync(id);
         if (contractor is null) return NotFound();
 
@@ -75,6 +91,9 @@ public class ContractorsController(AppDbContext db) : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleActive(int id)
     {
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin))
+            return Forbid();
+
         var contractor = await db.RepairContractors.FindAsync(id);
         if (contractor is null) return NotFound();
         contractor.IsActive = !contractor.IsActive;

@@ -1,0 +1,73 @@
+@{
+    ViewData["Title"] = "Portal Overview";
+    var metrics = ViewBag.Metrics as Dictionary<string, object> ?? new();
+    var reconciliation = ViewBag.Reconciliation as FrislEams.Web.Services.ReconciliationSummary;
+    var auditTrails = ViewBag.AuditTrails as List<FrislEams.Web.Models.AssetStatusHistory> ?? new();
+    var exceptions = ViewBag.Exceptions as List<FrislEams.Web.Services.ExceptionRecord> ?? new();
+    var compliance = metrics.GetValueOrDefault("CompliancePercent")?.ToString() ?? "0";
+    var matched = reconciliation?.Matched ?? 0;
+    var unmatched = reconciliation?.Unmatched ?? 0;
+    var total = reconciliation?.TotalAssets ?? 1;
+    var matchedPct = total > 0 ? matched * 100.0 / total : 100;
+    var unmatchedPct = 100 - matchedPct;
+}
+
+<div class="portal-dash-header">
+    <span class="portal-overview-badge">Portal Overview</span>
+    <h1>Dashboard <span class="readonly-pill">Read-only</span></h1>
+</div>
+
+<div class="portal-stat-row">
+    <div class="portal-stat-card"><div class="label">Total Assets Audited</div><div class="value">@metrics.GetValueOrDefault("TotalAssetsAudited")</div></div>
+    <div class="portal-stat-card"><div class="label">Reconciled</div><div class="value">@metrics.GetValueOrDefault("Reconciled")</div></div>
+    <div class="portal-stat-card"><div class="label">Exceptions</div><div class="value">@metrics.GetValueOrDefault("Exceptions")</div></div>
+    <div class="portal-stat-card"><div class="label">Compliance</div><div class="value">@compliance%</div></div>
+</div>
+
+<div class="portal-dash-grid">
+    <div class="portal-panel">
+        <h3>Reconciliation Status</h3>
+        <div class="donut-wrap">
+            <div class="donut-chart" style="background: conic-gradient(#6a1b9a 0% @(matchedPct)%, #e1bee7 @(matchedPct)% 100%);"></div>
+            <div class="donut-legend">
+                <div class="donut-legend-item"><span class="donut-swatch" style="background:#6a1b9a"></span> Matched (@matchedPct.ToString("F1")%)</div>
+                <div class="donut-legend-item"><span class="donut-swatch" style="background:#e1bee7"></span> Unmatched (@unmatchedPct.ToString("F1")%)</div>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="portal-panel" style="margin-bottom:1rem;">
+            <h3>Audit Activity (This Month)</h3>
+            <div class="portal-stat-row" style="margin-bottom:0;grid-template-columns:repeat(3,1fr);">
+                <div class="portal-stat-card" style="padding:0.75rem;"><div class="label">Audits</div><div class="value" style="font-size:1.2rem;">@(reconciliation?.OpenAuditSessions ?? 0)</div></div>
+                <div class="portal-stat-card" style="padding:0.75rem;"><div class="label">Exceptions</div><div class="value" style="font-size:1.2rem;">@exceptions.Count</div></div>
+                <div class="portal-stat-card" style="padding:0.75rem;"><div class="label">Reports</div><div class="value" style="font-size:1.2rem;">3</div></div>
+            </div>
+        </div>
+        <div class="portal-panel">
+            <h3>Recent Audit Trails</h3>
+            <ul class="portal-feed">
+                @foreach (var trail in auditTrails.Take(5))
+                {
+                    <li>
+                        <div class="feed-title">Asset #@trail.AssetId — @trail.NewStatus</div>
+                        <div class="feed-meta">@trail.Reason · @trail.ChangedAt.ToString("dd MMM yyyy")</div>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="portal-panel" style="margin-top:1rem;">
+    <h3>Exceptions Summary</h3>
+    @{
+        var rfidCount = exceptions.Count(e => e.Type == "RFID Alert");
+        var auditCount = exceptions.Count(e => e.Type == "Audit Variance");
+        var repairCount = exceptions.Count(e => e.Type == "Pending Repair");
+    }
+    <div class="exception-summary-item"><span>RFID Alerts</span><strong>@rfidCount</strong></div>
+    <div class="exception-summary-item"><span>Audit Variances</span><strong>@auditCount</strong></div>
+    <div class="exception-summary-item"><span>Pending Repairs</span><strong>@repairCount</strong></div>
+    <div class="exception-summary-item"><span>Unmatched Assets</span><strong>@unmatched</strong></div>
+</div>

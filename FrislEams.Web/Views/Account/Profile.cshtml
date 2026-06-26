@@ -1,0 +1,18 @@
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Profile</h1>
+        <p class="page-subtitle">Your account and portal access</p>
+    </div>
+</div>
+
+<div class="info-card" style="max-width:520px;">
+    <div class="form-group"><label class="form-label">Display Name</label><div>@ViewBag.DisplayName</div></div>
+    <div class="form-group"><label class="form-label">Username</label><div>@ViewBag.Username</div></div>
+    <div class="form-group"><label class="form-label">Role</label><div><span class="badge badge-info">@ViewBag.Role</span></div></div>
+    <div class="form-group"><label class="form-label">Portal</label><div>@ViewBag.Portal Portal</div></div>
+    <a href="/Account/Logout" class="btn btn-outline portal-logout-btn-profile">Logout</a>
+</div>

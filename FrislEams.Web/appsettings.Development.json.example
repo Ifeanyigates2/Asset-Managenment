@@ -1,0 +1,5 @@
+{
+  "MongoDb": {
+    "ConnectionString": "mongodb+srv://builder1:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/?retryWrites=true&w=majority"
+  }
+}

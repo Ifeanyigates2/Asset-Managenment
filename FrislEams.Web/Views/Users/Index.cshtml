@@ -1,0 +1,58 @@
+@model List<FrislEams.Web.Models.UserAccount>
+@{
+    ViewData["Title"] = "User Management";
+    var roles = ViewBag.RoleOptions as string[] ?? Array.Empty<string>();
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>User Management</h1>
+        <p class="page-subtitle">Administration → Users — create, activate, deactivate, and reset passwords</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">+ Create User</a>
+</div>
+
+<form method="get" class="filter-bar" style="margin-bottom:1rem;">
+    <input type="text" name="q" value="@ViewBag.Query" placeholder="Search by name, email, or employee ID" class="form-control" style="max-width:320px;display:inline-block;" />
+    <button type="submit" class="btn btn-outline">Search</button>
+</form>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Employee ID</th>
+                <th>Name</th>
+                <th>Email / Username</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td>@(user.EmployeeId ?? "—")</td>
+                <td>@user.DisplayName</td>
+                <td>@user.Username</td>
+                <td>@user.Role</td>
+                <td><span class="badge @(user.IsActive ? "badge-success" : "badge-danger")">@(user.IsActive ? "Active" : "Inactive")</span></td>
+                <td>
+                    <form asp-action="ToggleActive" method="post" style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@user.Id" />
+                        <button type="submit" class="btn btn-sm btn-outline">@(user.IsActive ? "Deactivate" : "Activate")</button>
+                    </form>
+                    <form asp-action="ResetPassword" method="post" style="display:inline;margin-left:0.25rem;">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@user.Id" />
+                        <input type="hidden" name="newPassword" value="ChangeMe@123" />
+                        <button type="submit" class="btn btn-sm btn-outline">Reset Password</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,25 @@
+@{
+    var portalHome = FrislEams.Web.Services.PortalService.GetHomePath(Context.Session.GetString("UserRole"));
+    var currentPath = Context.Request.Path.Value ?? "/";
+    bool IsActive(string path) => currentPath.StartsWith(path, StringComparison.OrdinalIgnoreCase);
+}
+<aside class="portal-sidebar portal-sidebar-admin">
+    <div class="portal-sidebar-brand">
+        <div class="portal-sidebar-icon">🛡️</div>
+        <div>
+            <div class="portal-sidebar-title">ADMIN PORTAL</div>
+            <div class="portal-sidebar-subtitle">System Administration &amp; Configuration</div>
+        </div>
+    </div>
+    <nav class="portal-sidebar-nav">
+        <a href="@portalHome" class="portal-nav-item @(IsActive("/Portal/Admin") ? "active" : "")"><span class="nav-ico">📊</span> Dashboard</a>
+        <a asp-controller="Assets" asp-action="Index" class="portal-nav-item @(IsActive("/Assets") ? "active" : "")"><span class="nav-ico">🏷️</span> Assets</a>
+        <a asp-controller="Users" asp-action="Index" class="portal-nav-item @(IsActive("/Users") ? "active" : "")"><span class="nav-ico">👥</span> Users</a>
+        <a asp-controller="MasterData" asp-action="Index" class="portal-nav-item @(IsActive("/MasterData") ? "active" : "")"><span class="nav-ico">🗂️</span> Master Data</a>
+        <a asp-controller="RfidTags" asp-action="Index" class="portal-nav-item @(IsActive("/RfidTags") ? "active" : "")"><span class="nav-ico">📡</span> RFID Tags</a>
+        <a asp-controller="RfidReader" asp-action="Index" class="portal-nav-item @(IsActive("/RfidReader") ? "active" : "")"><span class="nav-ico">📲</span> RFID Readers</a>
+        <a asp-controller="Settings" asp-action="Index" class="portal-nav-item @(IsActive("/Settings") ? "active" : "")"><span class="nav-ico">⚙️</span> System Settings</a>
+        <a asp-controller="AuditTrails" asp-action="Index" class="portal-nav-item @(IsActive("/AuditTrails") ? "active" : "")"><span class="nav-ico">📜</span> Audit Logs</a>
+    </nav>
+    @await Html.PartialAsync("_Sidebars/_PortalSidebarFooter")
+</aside>

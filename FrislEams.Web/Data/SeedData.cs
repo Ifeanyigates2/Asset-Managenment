@@ -1,25 +1,59 @@
 using FrislEams.Web.Domain;
 using FrislEams.Web.Models;
+using MongoDB.Driver;
 
 namespace FrislEams.Web.Data;
 
 public static class SeedData
 {
-    public static void Initialize(AppDbContext db)
+    public static async Task InitializeAsync(AppDbContext db, CancellationToken cancellationToken = default)
     {
+        await db.EnsureIndexesAsync(cancellationToken);
+        await MigrateLegacyUserAccountsAsync(db, cancellationToken);
         SeedCategories(db);
+        SeedAssetTypes(db);
+        SeedManufacturers(db);
         SeedLocations(db);
         SeedDepartments(db);
         SeedSuppliers(db);
         SeedContractors(db);
         SeedStaff(db);
+        SeedUserAccounts(db);
+        EnsureRequiredUserAccounts(db);
         SeedAssets(db);
+    }
+
+    public static void Initialize(AppDbContext db) => InitializeAsync(db).GetAwaiter().GetResult();
+
+    private static async Task MigrateLegacyUserAccountsAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var usersCollection = db.Users.Collection;
+        var usersCount = await usersCollection.CountDocumentsAsync(
+            FilterDefinition<UserAccount>.Empty,
+            cancellationToken: cancellationToken);
+        if (usersCount > 0)
+        {
+            return;
+        }
+
+        var legacyCollection = usersCollection.Database.GetCollection<UserAccount>("userAccounts");
+        var legacyUsers = await legacyCollection
+            .Find(FilterDefinition<UserAccount>.Empty)
+            .ToListAsync(cancellationToken);
+
+        if (legacyUsers.Count == 0)
+        {
+            return;
+        }
+
+        db.Users.AddRange(legacyUsers);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     private static void SeedCategories(AppDbContext db)
     {
         if (db.AssetCategories.Any()) return;
-        db.AssetCategories.AddRange(
+        db.AssetCategories.AddRange([
             new AssetCategory { Name = "Computers & Laptops", Code = "CMP", UsefulLifeYears = 4 },
             new AssetCategory { Name = "Furniture & Fittings", Code = "FUR", UsefulLifeYears = 10 },
             new AssetCategory { Name = "Office Equipment", Code = "OEQ", UsefulLifeYears = 5 },
@@ -30,29 +64,58 @@ public static class SeedData
             new AssetCategory { Name = "Server & Storage", Code = "SRV", UsefulLifeYears = 6 },
             new AssetCategory { Name = "Communication Devices", Code = "COM", UsefulLifeYears = 3 },
             new AssetCategory { Name = "Air Conditioners", Code = "ACU", UsefulLifeYears = 8 }
-        );
+        ]);
+        db.SaveChanges();
+    }
+
+    private static void SeedAssetTypes(AppDbContext db)
+    {
+        if (db.AssetTypes.Any()) return;
+        var cats = db.AssetCategories.AsQueryable().ToDictionary(c => c.Code, c => c.Id);
+        db.AssetTypes.AddRange([
+            new AssetType { Name = "Laptop", Code = "LAP", AssetCategoryId = cats["CMP"] },
+            new AssetType { Name = "Desktop", Code = "DSK", AssetCategoryId = cats["CMP"] },
+            new AssetType { Name = "Office Chair", Code = "CHR", AssetCategoryId = cats["FUR"] },
+            new AssetType { Name = "Network Switch", Code = "SWT", AssetCategoryId = cats["NET"] },
+            new AssetType { Name = "Laser Printer", Code = "LPR", AssetCategoryId = cats["PRT"] }
+        ]);
+        db.SaveChanges();
+    }
+
+    private static void SeedManufacturers(AppDbContext db)
+    {
+        if (db.Manufacturers.Any()) return;
+        db.Manufacturers.AddRange([
+            new Manufacturer { Name = "Dell", Code = "DELL" },
+            new Manufacturer { Name = "HP", Code = "HP" },
+            new Manufacturer { Name = "Lenovo", Code = "LEN" },
+            new Manufacturer { Name = "Cisco", Code = "CSCO" },
+            new Manufacturer { Name = "Apple", Code = "APPL" }
+        ]);
         db.SaveChanges();
     }
 
     private static void SeedLocations(AppDbContext db)
     {
         if (db.Locations.Any()) return;
-        db.Locations.AddRange(
-            new Location { Name = "Head Office – Abuja", Code = "HQ-ABJ" },
-            new Location { Name = "Lagos Branch", Code = "LG-BRN" },
-            new Location { Name = "Ibadan Branch", Code = "IB-BRN" },
-            new Location { Name = "Port Harcourt Branch", Code = "PH-BRN" },
-            new Location { Name = "Central Storage", Code = "STORE" },
-            new Location { Name = "Server Room – HQ", Code = "SRV-HQ" },
-            new Location { Name = "Archives", Code = "ARCH" }
-        );
+        db.Locations.AddRange([
+            new Location { Name = "Head Office – Abuja", Code = "HQ-ABJ", LocationType = "Branch" },
+            new Location { Name = "Lagos Branch", Code = "LG-BRN", LocationType = "Branch" },
+            new Location { Name = "Ibadan Branch", Code = "IB-BRN", LocationType = "Branch" },
+            new Location { Name = "Port Harcourt Branch", Code = "PH-BRN", LocationType = "Branch" },
+            new Location { Name = "HQ Main Building", Code = "HQ-BLD", LocationType = "Building", ParentLocationId = null },
+            new Location { Name = "Ground Floor", Code = "HQ-GF", LocationType = "Floor" },
+            new Location { Name = "Server Room", Code = "SRV-HQ", LocationType = "Room" },
+            new Location { Name = "Central Storage", Code = "STORE", LocationType = "Room" },
+            new Location { Name = "Archives", Code = "ARCH", LocationType = "Room" }
+        ]);
         db.SaveChanges();
     }
 
     private static void SeedDepartments(AppDbContext db)
     {
         if (db.Departments.Any()) return;
-        db.Departments.AddRange(
+        db.Departments.AddRange([
             new Department { Name = "Information Technology", Code = "IT" },
             new Department { Name = "Finance & Accounts", Code = "FIN" },
             new Department { Name = "Human Resources", Code = "HR" },
@@ -61,39 +124,39 @@ public static class SeedData
             new Department { Name = "Internal Audit", Code = "AUD" },
             new Department { Name = "Investor Services", Code = "INV" },
             new Department { Name = "Corporate Services", Code = "CRP" }
-        );
+        ]);
         db.SaveChanges();
     }
 
     private static void SeedSuppliers(AppDbContext db)
     {
         if (db.Suppliers.Any()) return;
-        db.Suppliers.AddRange(
+        db.Suppliers.AddRange([
             new Supplier { Name = "TechMart Nigeria Ltd", Code = "TECHM", ContactPerson = "Emeka Obi", Phone = "0801-234-5678", Email = "emeka@techmart.ng", Address = "Lagos Island, Lagos" },
             new Supplier { Name = "FurniGlobe Interiors", Code = "FURNI", ContactPerson = "Amina Yusuf", Phone = "0802-345-6789", Email = "amina@furniglobe.ng", Address = "Wuse II, Abuja" },
             new Supplier { Name = "NetPro Solutions", Code = "NETPRO", ContactPerson = "Chidi Nwosu", Phone = "0803-456-7890", Email = "chidi@netpro.ng", Address = "Victoria Island, Lagos" },
             new Supplier { Name = "SecurePoint Systems", Code = "SECPT", ContactPerson = "Halima Musa", Phone = "0804-567-8901", Email = "halima@securepoint.ng", Address = "Garki, Abuja" }
-        );
+        ]);
         db.SaveChanges();
     }
 
     private static void SeedContractors(AppDbContext db)
     {
         if (db.RepairContractors.Any()) return;
-        db.RepairContractors.AddRange(
+        db.RepairContractors.AddRange([
             new RepairContractor { Name = "QuickFix Tech Services", Code = "QFIX", ContactPerson = "Tunde Adeyemi", Phone = "0805-678-9012", Email = "tunde@quickfix.ng", Specialisation = "Computers & Networking", SlaHours = "24" },
             new RepairContractor { Name = "PowerCool HVAC", Code = "PCOOL", ContactPerson = "Grace Okafor", Phone = "0806-789-0123", Email = "grace@powercool.ng", Specialisation = "Air Conditioners", SlaHours = "48" },
             new RepairContractor { Name = "AllFix Engineering", Code = "ALFIX", ContactPerson = "Ibrahim Aliyu", Phone = "0807-890-1234", Email = "ibrahim@allfixeng.ng", Specialisation = "General Repairs", SlaHours = "72" }
-        );
+        ]);
         db.SaveChanges();
     }
 
     private static void SeedStaff(AppDbContext db)
     {
         if (db.Staff.Any()) return;
-        var depts = db.Departments.ToDictionary(d => d.Code, d => d.Id);
-        db.Staff.AddRange(
-            new Staff { StaffId = "FR-001", FullName = "Adaeze Okonkwo", Email = "adaeze.o@firstregistrars.ng", PhoneNumber = "0811-111-1111", Role = "Admin", DepartmentId = depts["IT"] },
+        var depts = db.Departments.AsQueryable().ToDictionary(d => d.Code, d => d.Id);
+        db.Staff.AddRange([
+            new Staff { StaffId = "FR-001", FullName = "Adaeze Okonkwo", Email = "adaeze.o@firstregistrars.ng", PhoneNumber = "0811-111-1111", Role = "Backoffice", DepartmentId = depts["IT"] },
             new Staff { StaffId = "FR-002", FullName = "Bello Umar", Email = "bello.u@firstregistrars.ng", PhoneNumber = "0812-222-2222", Role = "DepartmentHead", DepartmentId = depts["FIN"] },
             new Staff { StaffId = "FR-003", FullName = "Chisom Eze", Email = "chisom.e@firstregistrars.ng", PhoneNumber = "0813-333-3333", Role = "Staff", DepartmentId = depts["HR"] },
             new Staff { StaffId = "FR-004", FullName = "Damilola Afolabi", Email = "damilola.a@firstregistrars.ng", PhoneNumber = "0814-444-4444", Role = "Auditor", DepartmentId = depts["AUD"] },
@@ -101,19 +164,82 @@ public static class SeedData
             new Staff { StaffId = "FR-006", FullName = "Fatima Sule", Email = "fatima.s@firstregistrars.ng", PhoneNumber = "0816-666-6666", Role = "DepartmentHead", DepartmentId = depts["OPS"] },
             new Staff { StaffId = "FR-007", FullName = "Gbenga Oluwole", Email = "gbenga.o@firstregistrars.ng", PhoneNumber = "0817-777-7777", Role = "Staff", DepartmentId = depts["IT"] },
             new Staff { StaffId = "FR-008", FullName = "Hauwa Abdullahi", Email = "hauwa.a@firstregistrars.ng", PhoneNumber = "0818-888-8888", Role = "Staff", DepartmentId = depts["LEG"] }
-        );
+        ]);
         db.SaveChanges();
+    }
+
+    private static void SeedUserAccounts(AppDbContext db)
+    {
+        if (db.Users.Any()) return;
+
+        db.Users.AddRange([
+            new UserAccount { Username = "oludele.gbenro@firstregistrarsnigeria.com", Password = "Password@123", Role = "Backoffice", DisplayName = "Oludele Gbenro" },
+            new UserAccount { Username = "Admin", Password = "Admin1", Role = "Admin", DisplayName = "Admin" },
+            new UserAccount { Username = "Washington", Password = "Washington1", Role = "Backoffice", DisplayName = "Washington" },
+            new UserAccount { Username = "Auditor", Password = "auditor1", Role = "Auditor", DisplayName = "Auditor" },
+            new UserAccount { Username = "Staff", Password = "Staff1", Role = "Staff", DisplayName = "Staff" },
+            new UserAccount { Username = "Staff1", Password = "January2021###", Role = "Staff", DisplayName = "Staff 1" },
+            new UserAccount { Username = "Staff2", Password = "January2021###", Role = "Staff", DisplayName = "Staff 2" },
+            new UserAccount { Username = "Staff3", Password = "January2021###", Role = "Staff", DisplayName = "Staff 3" },
+            new UserAccount { Username = "Staff4", Password = "January2021###", Role = "Staff", DisplayName = "Staff 4" },
+            new UserAccount { Username = "staff", Password = "staff123", Role = "Staff", DisplayName = "Staff Member" },
+            new UserAccount { Username = "viewer", Password = "viewer123", Role = "Viewer", DisplayName = "Read-Only Viewer" }
+        ]);
+        db.SaveChanges();
+    }
+
+    private static void EnsureRequiredUserAccounts(AppDbContext db)
+    {
+        EnsureUserAccount(db, "Washington", "Washington1", "Backoffice", "Washington");
+        EnsureUserAccount(db, "Staff", "Staff1", "Staff", "Staff");
+        EnsureUserAccount(db, "Auditor", "auditor1", "Auditor", "Auditor");
+        EnsureUserAccount(db, "Admin", "Admin1", "Admin", "Admin");
+        RemoveLegacyUserAccount(db, "Backoffice");
+        db.SaveChanges();
+    }
+
+    private static void RemoveLegacyUserAccount(AppDbContext db, string username)
+    {
+        var existing = db.Users.AsQueryable()
+            .FirstOrDefault(u => u.Username.ToLower() == username.ToLower());
+        if (existing is null) return;
+        db.Users.Remove(existing);
+    }
+
+    private static void EnsureUserAccount(AppDbContext db, string username, string password, string role, string displayName)
+    {
+        var existing = db.Users.AsQueryable()
+            .FirstOrDefault(u => u.Username.ToLower() == username.ToLower());
+
+        if (existing is null)
+        {
+            db.Users.Add(new UserAccount
+            {
+                Username = username,
+                Password = password,
+                Role = role,
+                DisplayName = displayName
+            });
+            return;
+        }
+
+        existing.Password = password;
+        existing.Role = role;
+        existing.DisplayName = displayName;
+        existing.IsActive = true;
+        existing.UpdatedAt = DateTime.UtcNow;
+        db.Users.Update(existing);
     }
 
     private static void SeedAssets(AppDbContext db)
     {
         if (db.Assets.Any()) return;
 
-        var cats = db.AssetCategories.ToDictionary(c => c.Code, c => c);
-        var locs = db.Locations.ToDictionary(l => l.Code, l => l);
-        var depts = db.Departments.ToDictionary(d => d.Code, d => d);
-        var staffList = db.Staff.ToDictionary(s => s.StaffId, s => s);
-        var suppliers = db.Suppliers.ToDictionary(s => s.Code, s => s);
+        var cats = db.AssetCategories.AsQueryable().ToDictionary(c => c.Code, c => c);
+        var locs = db.Locations.AsQueryable().ToDictionary(l => l.Code, l => l);
+        var depts = db.Departments.AsQueryable().ToDictionary(d => d.Code, d => d);
+        var staffList = db.Staff.AsQueryable().ToDictionary(s => s.StaffId, s => s);
+        var suppliers = db.Suppliers.AsQueryable().ToDictionary(s => s.Code, s => s);
 
         var assets = new List<Asset>
         {
@@ -142,7 +268,7 @@ public static class SeedData
         int rfidSeq = 100;
         foreach (var a in assets)
         {
-            db.RfidTags.Add(new RfidTag { AssetId = a.Id, RfidCode = $"RFID-{++rfidSeq:D6}", IsActive = true });
+            db.RfidTags.Add(new RfidTag { AssetId = a.Id, RfidCode = $"RFID-{++rfidSeq:D6}", TagStatus = RfidTagStatus.Active, IsActive = true });
         }
         db.SaveChanges();
 
@@ -173,7 +299,7 @@ public static class SeedData
 
         // Assignments for active assets
         var activeAssets = assets.Where(a => a.CurrentStatus is AssetStatus.ActiveAssigned or AssetStatus.AssignedPendingConfirmation).ToList();
-        var hqLoc = db.Locations.First(l => l.Code == "HQ-ABJ");
+        var hqLoc = db.Locations.AsQueryable().First(l => l.Code == "HQ-ABJ");
         foreach (var a in activeAssets.Where(a => a.CurrentCustodianId.HasValue))
         {
             db.AssetAssignments.Add(new AssetAssignment
@@ -193,8 +319,8 @@ public static class SeedData
         }
         // Pending assignment
         var pendingAsset = assets.FirstOrDefault(a => a.TagCode.Contains("CMP-OPS-001"));
-        var opsStaff = db.Staff.First(s => s.StaffId == "FR-005");
-        var opsDept = db.Departments.First(d => d.Code == "OPS");
+        var opsStaff = db.Staff.AsQueryable().First(s => s.StaffId == "FR-005");
+        var opsDept = db.Departments.AsQueryable().First(d => d.Code == "OPS");
         if (pendingAsset != null)
         {
             db.AssetAssignments.Add(new AssetAssignment
@@ -227,10 +353,10 @@ public static class SeedData
         });
 
         // Asset requests
-        db.AssetRequests.AddRange(
-            new AssetRequest { RequestType = "New Asset", RequestedByStaffId = db.Staff.First(s => s.StaffId == "FR-003").Id, DepartmentId = db.Departments.First(d => d.Code == "HR").Id, Description = "Need a new laptop for the new HR officer joining next month.", Status = "Pending Department Approval", CreatedAt = DateTime.UtcNow.AddDays(-5) },
+        db.AssetRequests.AddRange([
+            new AssetRequest { RequestType = "New Asset", RequestedByStaffId = db.Staff.AsQueryable().First(s => s.StaffId == "FR-003").Id, DepartmentId = db.Departments.AsQueryable().First(d => d.Code == "HR").Id, Description = "Need a new laptop for the new HR officer joining next month.", Status = "Pending Department Approval", CreatedAt = DateTime.UtcNow.AddDays(-5) },
             new AssetRequest { RequestType = "Replacement", RequestedByStaffId = opsStaff.Id, DepartmentId = opsDept.Id, Description = "Canon printer in HR is damaged beyond economic repair. Requesting replacement.", Status = "Pending Admin Approval", ApprovedByDepartmentHead = "Fatima Sule", DeptHeadApprovedAt = DateTime.UtcNow.AddDays(-2), CreatedAt = DateTime.UtcNow.AddDays(-4) }
-        );
+        ]);
 
         // Loan + Exit Grant for vehicle
         var vehicle = assets.First(a => a.TagCode.Contains("VEH-OPS"));
@@ -253,24 +379,24 @@ public static class SeedData
         db.ExitGrants.Add(new ExitGrant { AssetId = vehicle.Id, LoanRequestId = loan.Id, GrantedBy = "Admin", GrantStartDate = loan.StartDate, GrantEndDate = loan.ExpectedReturnDate, IsActive = true, ExitReason = "Approved external loan – site inspection" });
 
         // RFID events
-        db.RfidEvents.AddRange(
+        db.RfidEvents.AddRange([
             new RfidEvent { RfidCode = "RFID-100112", EventType = "AuthorizedExitOrReturn", DoorLocation = "Main Gate", ProcessedStatus = "Authorized", AlertTriggered = false, EventTime = DateTime.UtcNow.AddHours(-2) },
             new RfidEvent { RfidCode = "RFID-UNKNOWN-X1", EventType = "ExternalAsset", DoorLocation = "Staff Entrance", ProcessedStatus = "Unknown RFID – logged as external", AlertTriggered = true, AlertMessage = "Unregistered RFID tag detected at Staff Entrance. Possible unauthorized removal.", EventTime = DateTime.UtcNow.AddHours(-5) },
             new RfidEvent { RfidCode = "RFID-100101", EventType = "AuthorizedExitOrReturn", DoorLocation = "Main Gate", ProcessedStatus = "Authorized", AlertTriggered = false, EventTime = DateTime.UtcNow.AddDays(-1) }
-        );
+        ]);
 
         // Audit session
-        var itDept = db.Departments.First(d => d.Code == "IT");
+        var itDept = db.Departments.AsQueryable().First(d => d.Code == "IT");
         db.AuditSessions.Add(new AuditSession { AuditType = "Departmental", DepartmentId = itDept.Id, InitiatedBy = "Damilola Afolabi", Status = "Open", Notes = "Annual IT asset verification", StartDate = DateTime.UtcNow.AddDays(-2) });
 
         // Notifications
-        db.Notifications.AddRange(
-            new Notification { TargetRole = "Admin", Title = "Warranty Expiry Alert", Message = "Cisco Catalyst 2960 Switch warranty expired 05-Sep-2024. Review recommended.", Type = "Warning", IsRead = false, CreatedAt = DateTime.UtcNow.AddDays(-1) },
-            new Notification { TargetRole = "Admin", Title = "Pending Repair Review", Message = "HP LaserJet Pro M428fdn has an open repair request awaiting approval.", Type = "Info", IsRead = false, CreatedAt = DateTime.UtcNow.AddDays(-3) },
-            new Notification { TargetRole = "Admin", Title = "External Loan Active", Message = "Toyota Hilux GR Sport is on external loan. Exit grant expires in 5 days.", Type = "Warning", IsRead = false, CreatedAt = DateTime.UtcNow.AddDays(-10) },
-            new Notification { TargetRole = "Admin", Title = "Asset Request Pending", Message = "2 asset requests are pending admin approval.", Type = "Info", IsRead = false, CreatedAt = DateTime.UtcNow.AddDays(-4) },
+        db.Notifications.AddRange([
+            new Notification { TargetRole = "Backoffice", Title = "Warranty Expiry Alert", Message = "Cisco Catalyst 2960 Switch warranty expired 05-Sep-2024. Review recommended.", Type = "Warning", IsRead = false, CreatedAt = DateTime.UtcNow.AddDays(-1) },
+            new Notification { TargetRole = "Backoffice", Title = "Pending Repair Review", Message = "HP LaserJet Pro M428fdn has an open repair request awaiting approval.", Type = "Info", IsRead = false, CreatedAt = DateTime.UtcNow.AddDays(-3) },
+            new Notification { TargetRole = "Backoffice", Title = "External Loan Active", Message = "Toyota Hilux GR Sport is on external loan. Exit grant expires in 5 days.", Type = "Warning", IsRead = false, CreatedAt = DateTime.UtcNow.AddDays(-10) },
+            new Notification { TargetRole = "Backoffice", Title = "Asset Request Pending", Message = "2 asset requests are pending admin approval.", Type = "Info", IsRead = false, CreatedAt = DateTime.UtcNow.AddDays(-4) },
             new Notification { TargetRole = "Auditor", Title = "Audit Scheduled", Message = "IT department annual audit is in progress. Please complete variance analysis.", Type = "Info", IsRead = false, CreatedAt = DateTime.UtcNow.AddDays(-2) }
-        );
+        ]);
 
         db.SaveChanges();
     }

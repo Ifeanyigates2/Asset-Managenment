@@ -1,0 +1,36 @@
+@model FrislEams.Web.Models.TransferCreateVm
+@{
+    ViewData["Title"] = "New Transfer";
+    var assets = ViewBag.Assets as List<FrislEams.Web.Models.Asset> ?? new();
+    var departments = ViewBag.Departments as List<FrislEams.Web.Models.Department> ?? new();
+    var locations = ViewBag.Locations as List<FrislEams.Web.Models.Location> ?? new();
+}
+
+<div class="page-header">
+    <div class="page-title"><h1>New Transfer Request</h1></div>
+</div>
+
+<form asp-action="Create" method="post" class="form-card">
+    @Html.AntiForgeryToken()
+    <div class="form-group">
+        <label asp-for="AssetId">Asset</label>
+        <select asp-for="AssetId" class="form-control" required>
+            <option value="">Select asset</option>
+            @foreach (var a in assets) { <option value="@a.Id">@a.TagCode — @a.AssetName</option> }
+        </select>
+    </div>
+    <div class="form-group">
+        <label asp-for="ToDepartmentId">Destination Department</label>
+        <select asp-for="ToDepartmentId" class="form-control" required>
+            @foreach (var d in departments) { <option value="@d.Id">@d.Name</option> }
+        </select>
+    </div>
+    <div class="form-group">
+        <label asp-for="ToLocationId">Destination Location</label>
+        <select asp-for="ToLocationId" class="form-control">
+            <option value="">Same as department default</option>
+            @foreach (var l in locations) { <option value="@l.Id">@l.Name</option> }
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit Transfer</button>
+</form>

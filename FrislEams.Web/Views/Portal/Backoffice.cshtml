@@ -1,0 +1,69 @@
+@model FrislEams.Web.Services.AdminDashboardMetrics
+@{
+    ViewData["Title"] = "Portal Overview";
+    var m = Model;
+    var manual = ViewBag.ManualMetrics as FrislEams.Web.Services.BackofficeManualMetrics;
+    var underMaintenance = m.UnderRepair + m.Damaged;
+    var movements = ViewBag.RecentMovements as List<FrislEams.Web.Services.MovementRecord> ?? new();
+    var categories = m.AssetsByCategory.OrderByDescending(x => x.Value).Take(5).ToList();
+    var totalCat = categories.Sum(x => x.Value);
+    var colors = new[] { "#1d3461", "#2a4a8a", "#c4970a", "#198754", "#6c757d" };
+    var gradientParts = new List<string>();
+    double acc = 0;
+    for (var i = 0; i < categories.Count; i++)
+    {
+        var pct = totalCat > 0 ? categories[i].Value * 100.0 / totalCat : 0;
+        gradientParts.Add($"{colors[i % colors.Length]} {acc:F1}% {acc + pct:F1}%");
+        acc += pct;
+    }
+    var donutStyle = categories.Any() ? $"background: conic-gradient({string.Join(", ", gradientParts)});" : "background:#e8edf5;";
+}
+
+<div class="portal-dash-header">
+    <span class="portal-overview-badge">Portal Overview</span>
+    <h1>Dashboard</h1>
+</div>
+
+<div class="portal-stat-row">
+    <div class="portal-stat-card"><div class="label">Total Assets</div><div class="value">@(manual?.TotalAssets ?? m.TotalAssets).ToString("N0")</div></div>
+    <div class="portal-stat-card"><div class="label">Assets Assigned</div><div class="value">@(manual?.AssetsAssigned ?? m.ActiveAssigned).ToString("N0")</div></div>
+    <div class="portal-stat-card"><div class="label">Awaiting RFID</div><div class="value">@(manual?.AssetsAwaitingRfid ?? 0).ToString("N0")</div></div>
+    <div class="portal-stat-card"><div class="label">Without Custodian</div><div class="value">@(manual?.AssetsWithoutCustodian ?? 0).ToString("N0")</div></div>
+    <div class="portal-stat-card"><div class="label">Pending Transfers</div><div class="value">@(manual?.PendingTransfers ?? 0).ToString("N0")</div></div>
+</div>
+
+<div class="portal-dash-grid">
+    <div class="portal-panel">
+        <h3>Assets by Category</h3>
+        <div class="donut-wrap">
+            <div class="donut-chart" style="@donutStyle"></div>
+            <div class="donut-legend">
+                @for (var i = 0; i < categories.Count; i++)
+                {
+                    var pct = totalCat > 0 ? (int)(categories[i].Value * 100.0 / totalCat) : 0;
+                    <div class="donut-legend-item">
+                        <span class="donut-swatch" style="background:@colors[i % colors.Length]"></span>
+                        <span>@categories[i].Key (@pct%)</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="portal-panel">
+        <h3>Recent Movements</h3>
+        <ul class="portal-feed">
+            @if (!movements.Any())
+            {
+                <li class="text-muted">No recent movements recorded.</li>
+            }
+            @foreach (var move in movements.Take(6))
+            {
+                <li>
+                    <div class="feed-title">@move.AssetName</div>
+                    <div class="feed-meta">@move.Detail · @move.OccurredAt.ToString("dd MMM yyyy HH:mm")</div>
+                </li>
+            }
+        </ul>
+        <a asp-controller="Movements" asp-action="Index" class="btn btn-sm btn-outline" style="margin-top:0.75rem;">View all movements</a>
+    </div>
+</div>

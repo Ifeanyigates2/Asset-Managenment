@@ -3,16 +3,18 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FrislEams.Web.Controllers;
 
-public class HomeController(DashboardService dashboardService) : Controller
+public class HomeController(RoleGuard roleGuard) : Controller
 {
-    public async Task<IActionResult> Index()
+    public IActionResult Index()
     {
-        var metrics = await dashboardService.GetAdminMetricsFullAsync();
-        return View(metrics);
+        var role = roleGuard.GetCurrentRole(HttpContext);
+        if (string.IsNullOrWhiteSpace(HttpContext.Session.GetString("UserName")))
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        return Redirect(PortalService.GetHomePath(role));
     }
 
-    public IActionResult Error()
-    {
-        return View();
-    }
+    public IActionResult Error() => View();
 }

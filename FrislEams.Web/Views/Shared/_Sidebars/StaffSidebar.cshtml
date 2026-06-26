@@ -1,0 +1,24 @@
+@{
+    var portalHome = FrislEams.Web.Services.PortalService.GetHomePath(Context.Session.GetString("UserRole"));
+    var currentPath = Context.Request.Path.Value ?? "/";
+    bool IsActive(string path) => currentPath.StartsWith(path, StringComparison.OrdinalIgnoreCase);
+}
+<aside class="portal-sidebar portal-sidebar-staff">
+    <div class="portal-sidebar-brand">
+        <div class="portal-sidebar-icon">👤</div>
+        <div>
+            <div class="portal-sidebar-title">STAFF PORTAL</div>
+            <div class="portal-sidebar-subtitle">Asset Usage &amp; Daily Operations</div>
+        </div>
+    </div>
+    <nav class="portal-sidebar-nav">
+        <a href="@portalHome" class="portal-nav-item @(IsActive("/Portal/Staff") ? "active" : "")"><span class="nav-ico">📊</span> Dashboard</a>
+        <a asp-controller="MyAssets" asp-action="Index" class="portal-nav-item @(IsActive("/MyAssets") ? "active" : "")"><span class="nav-ico">🏷️</span> My Assets</a>
+        <a asp-controller="RfidReader" asp-action="Index" class="portal-nav-item @(IsActive("/RfidReader") ? "active" : "")"><span class="nav-ico">📡</span> Scan RFID</a>
+        <a asp-controller="Transfers" asp-action="Create" class="portal-nav-item @(IsActive("/Transfers") ? "active" : "")"><span class="nav-ico">🔄</span> Request Transfer</a>
+        <a asp-controller="Workflow" asp-action="Loans" class="portal-nav-item @(IsActive("/Workflow/Loans") ? "active" : "")"><span class="nav-ico">↩️</span> Asset Return</a>
+        <a asp-controller="Notifications" asp-action="Index" class="portal-nav-item @(IsActive("/Notifications") ? "active" : "")"><span class="nav-ico">🔔</span> Notifications</a>
+        <a asp-controller="Account" asp-action="Profile" class="portal-nav-item @(IsActive("/Account/Profile") ? "active" : "")"><span class="nav-ico">👤</span> Profile</a>
+    </nav>
+    @await Html.PartialAsync("_Sidebars/_PortalSidebarFooter")
+</aside>

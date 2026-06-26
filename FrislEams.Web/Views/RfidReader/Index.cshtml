@@ -1,0 +1,108 @@
+@{
+    ViewData["Title"] = "RFID Handheld Reader";
+    var mode = (ViewBag.Mode as string) ?? "read";
+    var asset = ViewBag.Asset as FrislEams.Web.Models.Asset;
+    var unknownTag = ViewBag.UnknownTag as string;
+    var assets = ViewBag.Assets as List<FrislEams.Web.Models.Asset>;
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>RFID Scan</h1>
+        <p class="page-subtitle">Handheld reader modes — Read, Write, Verification</p>
+    </div>
+</div>
+
+<div class="portal-stat-row" style="margin-bottom:1.5rem;">
+    <a asp-action="Index" asp-route-mode="read" class="btn @(mode == "read" ? "btn-primary" : "btn-outline")">Read Mode</a>
+    <a asp-action="Index" asp-route-mode="write" class="btn @(mode == "write" ? "btn-primary" : "btn-outline")">Write Mode</a>
+    <a asp-action="Index" asp-route-mode="verify" class="btn @(mode == "verify" ? "btn-primary" : "btn-outline")">Verification Mode</a>
+</div>
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-error">@ViewBag.Error</div>
+}
+@if (ViewBag.Message != null)
+{
+    <div class="alert alert-success">@ViewBag.Message</div>
+}
+
+<div class="form-card">
+    @if (mode == "write")
+    {
+        <form asp-action="Scan" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="mode" value="write" />
+            <div class="form-group">
+                <label>Select asset to encode</label>
+                <select name="assetId" class="form-control" required>
+                    <option value="">Choose asset...</option>
+                    @foreach (var a in assets ?? new List<FrislEams.Web.Models.Asset>())
+                    {
+                        <option value="@a.Id">@a.TagCode — @a.AssetName</option>
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Write Tag (simulate)</button>
+        </form>
+    }
+    else
+    {
+        <form asp-action="Scan" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="mode" value="@mode" />
+            <div class="form-group">
+                <label>RFID Code</label>
+                <input type="text" name="rfidCode" class="form-control" placeholder="Scan or enter RFID tag" required autofocus />
+            </div>
+            <button type="submit" class="btn btn-primary">@(mode == "verify" ? "Verify Tag" : "Scan")</button>
+        </form>
+    }
+</div>
+
+@if (asset != null)
+{
+    <div class="info-card" style="margin-top:1rem;">
+        <h3>Asset Details</h3>
+        <p><strong>Asset Number:</strong> @asset.TagCode</p>
+        <p><strong>Description:</strong> @asset.AssetName</p>
+        <p><strong>Department:</strong> @(asset.CurrentDepartment?.Name ?? "—")</p>
+        <p><strong>Location:</strong> @(asset.CurrentLocation?.Name ?? "—")</p>
+        <p><strong>Status:</strong> @asset.CurrentStatus</p>
+        <p><strong>Custodian:</strong> @(asset.CurrentCustodian?.FullName ?? "—")</p>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(unknownTag))
+{
+    var linkAssets = ViewBag.LinkAssets as List<FrislEams.Web.Models.Asset> ?? new();
+    <div class="info-card" style="margin-top:1rem;border-left:4px solid #e8a00e;">
+        <h3>Unknown RFID Tag Detected</h3>
+        <p>Tag: <code>@unknownTag</code></p>
+        <form asp-action="HandleUnknown" method="post" style="margin-top:0.75rem;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="rfidCode" value="@unknownTag" />
+            <button type="submit" name="action" value="register" class="btn btn-outline">Register as New Asset</button>
+            <button type="submit" name="action" value="ignore" class="btn btn-outline">Ignore</button>
+        </form>
+        <form asp-action="HandleUnknown" method="post" style="margin-top:0.75rem;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="rfidCode" value="@unknownTag" />
+            <input type="hidden" name="action" value="link" />
+            <select name="assetId" class="form-control" style="max-width:320px;display:inline-block;" required>
+                <option value="">Link to existing asset...</option>
+                @foreach (var a in linkAssets)
+                {
+                    <option value="@a.Id">@a.TagCode — @a.AssetName</option>
+                }
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Link Tag</button>
+        </form>
+    </div>
+}
+
+@if (ViewBag.WrittenTag != null)
+{
+    <div class="alert alert-success" style="margin-top:1rem;">Tag written: <code>@(((FrislEams.Web.Models.RfidTag)ViewBag.WrittenTag).RfidCode)</code></div>
+}

@@ -1,0 +1,69 @@
+@{
+    ViewData["Title"] = "Master Data Setup";
+    var activeTab = ViewBag.Section as string ?? "departments";
+    var departments = ViewBag.Departments as List<FrislEams.Web.Models.Department> ?? new();
+    var categories = ViewBag.Categories as List<FrislEams.Web.Models.AssetCategory> ?? new();
+    var assetTypes = ViewBag.AssetTypes as List<FrislEams.Web.Models.AssetType> ?? new();
+    var locations = ViewBag.Locations as List<FrislEams.Web.Models.Location> ?? new();
+    var vendors = ViewBag.Vendors as List<FrislEams.Web.Models.Supplier> ?? new();
+    var manufacturers = ViewBag.Manufacturers as List<FrislEams.Web.Models.Manufacturer> ?? new();
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Master Data Setup</h1>
+        <p class="page-subtitle">Branches, buildings, floors, rooms, departments, categories, asset types, vendors, manufacturers</p>
+    </div>
+</div>
+
+<div class="portal-stat-row" style="margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
+    @foreach (var tab in new[] { "departments", "categories", "assettypes", "locations", "vendors", "manufacturers" })
+    {
+        <a asp-action="Index" asp-route-section="@tab" class="btn @(activeTab == tab ? "btn-primary" : "btn-outline")">@tab</a>
+    }
+</div>
+
+<div class="form-card" style="margin-bottom:1rem;">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="section" value="@activeTab" />
+        <div class="form-inline" style="gap:0.5rem;flex-wrap:wrap;">
+            <input name="Name" class="form-control" placeholder="Name" required style="max-width:200px;" />
+            <input name="Code" class="form-control" placeholder="Code" required style="max-width:120px;" />
+            @if (activeTab == "locations")
+            {
+                <select name="LocationType" class="form-control" style="max-width:140px;">
+                    <option value="Branch">Branch</option>
+                    <option value="Building">Building</option>
+                    <option value="Floor">Floor</option>
+                    <option value="Room">Room</option>
+                </select>
+                <select name="ParentLocationId" class="form-control" style="max-width:200px;">
+                    <option value="">No parent</option>
+                    @foreach (var l in locations) { <option value="@l.Id">@l.Name</option> }
+                </select>
+            }
+            @if (activeTab == "assettypes")
+            {
+                <select name="AssetCategoryId" class="form-control" style="max-width:200px;" required>
+                    @foreach (var c in categories) { <option value="@c.Id">@c.Name</option> }
+                </select>
+            }
+            <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+    </form>
+</div>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead><tr><th>Name</th><th>Code</th><th>Details</th></tr></thead>
+        <tbody>
+        @if (activeTab == "departments") { foreach (var i in departments) { <tr><td>@i.Name</td><td>@i.Code</td><td>—</td></tr> } }
+        @if (activeTab == "categories") { foreach (var i in categories) { <tr><td>@i.Name</td><td>@i.Code</td><td>@i.UsefulLifeYears yr life</td></tr> } }
+        @if (activeTab == "assettypes") { foreach (var i in assetTypes) { <tr><td>@i.Name</td><td>@i.Code</td><td>Category #@i.AssetCategoryId</td></tr> } }
+        @if (activeTab == "locations") { foreach (var i in locations) { <tr><td>@i.Name</td><td>@i.Code</td><td>@i.LocationType @(i.ParentLocationId.HasValue ? $"(parent #{i.ParentLocationId})" : "")</td></tr> } }
+        @if (activeTab == "vendors") { foreach (var i in vendors) { <tr><td>@i.Name</td><td>@i.Code</td><td>@(i.IsActive ? "Active" : "Inactive")</td></tr> } }
+        @if (activeTab == "manufacturers") { foreach (var i in manufacturers) { <tr><td>@i.Name</td><td>@i.Code</td><td>@(i.IsActive ? "Active" : "Inactive")</td></tr> } }
+        </tbody>
+    </table>
+</div>

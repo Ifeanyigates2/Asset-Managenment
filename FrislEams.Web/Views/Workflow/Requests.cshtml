@@ -13,11 +13,11 @@
 <div class="page-header">
     <div class="page-title">
         <h1>Asset Requests</h1>
-        <p class="page-subtitle">Three-stage approval: Staff → Department Head → Admin</p>
+    <p class="page-subtitle">Three-stage approval: Staff → Department Head → Backoffice</p>
     </div>
     <div class="flex-gap">
         <span class="badge badge-warning">@pendingDept.Count Dept. Pending</span>
-        <span class="badge badge-orange">@pendingAdmin.Count Admin Pending</span>
+        <span class="badge badge-orange">@pendingAdmin.Count Backoffice Pending</span>
         <span class="badge badge-success">@approved.Count Approved</span>
     </div>
 </div>
@@ -126,11 +126,11 @@
 @if (pendingAdmin.Any())
 {
     <div class="info-card" style="border-left:4px solid #fd7e14;margin-top:1.5rem;">
-        <h3 class="info-card-title" style="color:#fd7e14;">Stage 2 — Awaiting Admin Approval (@pendingAdmin.Count)</h3>
+        <h3 class="info-card-title" style="color:#fd7e14;">Stage 2 — Awaiting Backoffice Approval (@pendingAdmin.Count)</h3>
         <div class="table-card" style="margin:0;">
             <table class="data-table">
                 <thead>
-                    <tr><th>Type</th><th>Requested By</th><th>Department</th><th>Dept. Head</th><th>Description</th><th>Admin Action</th></tr>
+                    <tr><th>Type</th><th>Requested By</th><th>Department</th><th>Dept. Head</th><th>Description</th><th>Backoffice Action</th></tr>
                 </thead>
                 <tbody>
                 @foreach (var r in pendingAdmin)
@@ -145,7 +145,7 @@
                             <form asp-action="ApproveAdminRequest" method="post" style="display:flex;gap:6px;align-items:center;">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@r.Id" />
-                                <input name="approverName" class="form-control form-control-sm" placeholder="Admin name" required value="@(Context.Session.GetString("UserName") ?? "Admin")" />
+                                <input name="approverName" class="form-control form-control-sm" placeholder="Backoffice name" required value="@(Context.Session.GetString("UserName") ?? "Backoffice")" />
                                 <button type="submit" class="btn btn-primary btn-sm">Approve</button>
                             </form>
                             <form asp-action="RejectRequest" method="post" style="display:flex;gap:6px;align-items:center;margin-top:4px;">
@@ -170,7 +170,7 @@
     </div>
     <table class="data-table">
         <thead>
-            <tr><th>Type</th><th>Status</th><th>Requester</th><th>Department</th><th>Description</th><th>Raised</th><th>Dept. Head</th><th>Admin</th></tr>
+            <tr><th>Type</th><th>Status</th><th>Requester</th><th>Department</th><th>Description</th><th>Raised</th><th>Dept. Head</th><th>Backoffice</th></tr>
         </thead>
         <tbody>
         @foreach (var r in Model.OrderByDescending(x => x.CreatedAt))

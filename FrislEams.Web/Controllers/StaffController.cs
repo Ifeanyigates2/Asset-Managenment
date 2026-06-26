@@ -1,15 +1,19 @@
 using FrislEams.Web.Data;
+using FrislEams.Web.Domain;
 using FrislEams.Web.Models;
+using FrislEams.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FrislEams.Web.Controllers;
 
-public class StaffController(AppDbContext db) : Controller
+public class StaffController(AppDbContext db, RoleGuard roleGuard) : Controller
 {
     [HttpGet]
     public async Task<IActionResult> Index()
     {
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin))
+            return Forbid();
+
         var staff = await db.Staff
             .Include(s => s.Department)
             .OrderBy(s => s.FullName)
@@ -21,6 +25,9 @@ public class StaffController(AppDbContext db) : Controller
     [HttpGet]
     public async Task<IActionResult> Create()
     {
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin))
+            return Forbid();
+
         ViewBag.Departments = await db.Departments.ToListAsync();
         return View(new Staff());
     }
@@ -29,6 +36,9 @@ public class StaffController(AppDbContext db) : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Staff vm)
     {
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin))
+            return Forbid();
+
         if (!ModelState.IsValid)
         {
             ViewBag.Departments = await db.Departments.ToListAsync();

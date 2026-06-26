@@ -1,3 +1,17 @@
+@{
+    var sessionPortal = Context.Session.GetString("UserPortal")
+        ?? FrislEams.Web.Services.PortalService.GetPortalForRole(Context.Session.GetString("UserRole"));
+    var portalKey = sessionPortal?.ToLowerInvariant() ?? "backoffice";
+    var portalTheme = $"portal-theme-{portalKey}";
+    var sidebarPartial = sessionPortal switch
+    {
+        "Admin" => "_Sidebars/AdminSidebar",
+        "Auditor" => "_Sidebars/AuditorSidebar",
+        "Staff" => "_Sidebars/StaffSidebar",
+        _ => "_Sidebars/BackofficeSidebar"
+    };
+    var isDashboard = (Context.Request.Path.Value ?? "").Contains("/Portal/", StringComparison.OrdinalIgnoreCase);
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,102 +19,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@(ViewData["Title"] != null ? ViewData["Title"] + " – " : "")FRISL EAMS | First Registrars</title>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/portal-ui.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/portals/portal-@(portalKey).css" asp-append-version="true" />
 </head>
-<body>
-    @{
-        var sessionUser = Context.Session.GetString("UserName") ?? "Admin User";
-        var sessionRole = Context.Session.GetString("UserRole") ?? "Admin";
-        var initials = string.Concat(sessionUser.Split(' ').Take(2).Select(w => char.ToUpper(w[0]))).ToString();
-        var currentPath = Context.Request.Path.Value ?? "/";
-        bool IsActive(string path) => currentPath.StartsWith(path, StringComparison.OrdinalIgnoreCase);
-    }
+<body class="portal-app @portalTheme">
+    <div class="portal-app-shell">
+        @await Html.PartialAsync(sidebarPartial)
 
-    <div class="top-bar">
-        <span>First Registrars &amp; Investor Services — Enterprise Asset Management System</span>
-        <div style="display:flex;gap:1rem;align-items:center;font-size:0.82rem;">
-            <span style="opacity:0.8;">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</span>
-            <a href="/Account/Logout" style="color:rgba(255,255,255,0.75);text-decoration:none;border:1px solid rgba(255,255,255,0.35);padding:0.2rem 0.7rem;border-radius:4px;transition:all 0.2s;">Sign Out</a>
+        <div class="portal-main">
+            <header class="portal-main-header portal-main-header-@portalKey">
+                <div class="portal-header-left">
+                    <img src="~/firstregistrars-logo.png" alt="First Registrars" class="portal-header-logo" />
+                    <div class="portal-header-titles">
+                        <span class="portal-header-name">@sessionPortal Portal</span>
+                        <span class="portal-header-tag">RFID-enabled · Role-based access · Secure</span>
+                    </div>
+                </div>
+                <div class="portal-header-right">
+                    <span class="portal-header-meta">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</span>
+                    <a href="/Account/Logout" class="portal-logout-btn portal-logout-btn-header">Logout</a>
+                </div>
+            </header>
+
+            <main class="portal-main-content">
+                @if (TempData["Success"] is string success)
+                {
+                    <div class="alert alert-success"><span>✓</span> @success</div>
+                }
+                @if (TempData["Error"] is string error)
+                {
+                    <div class="alert alert-error"><span>⚠</span> @error</div>
+                }
+                @RenderBody()
+                @if (isDashboard)
+                {
+                    @await Html.PartialAsync("_PortalFeatures")
+                }
+            </main>
+
+            <footer class="portal-main-footer">
+                &copy; @DateTime.Now.Year First Registrars &amp; Investor Services Ltd. · @sessionPortal Portal
+            </footer>
         </div>
     </div>
-
-    <header class="site-header">
-        <div class="header-inner">
-            <a asp-controller="Home" asp-action="Index" class="header-logo">
-                <img src="~/firstregistrars-logo.png" alt="First Registrars Logo" />
-                <div class="system-label">
-                    <strong>EAMS</strong>
-                    <span>Asset Management System</span>
-                </div>
-            </a>
-
-            <nav class="main-nav">
-                <a asp-controller="Home" asp-action="Index" class="@(IsActive("/Home") || currentPath == "/" ? "active" : "")">Dashboard</a>
-                <a asp-controller="Assets" asp-action="Index" class="@(IsActive("/Assets") ? "active" : "")">Assets</a>
-                <a asp-controller="Assignments" asp-action="Index" class="@(IsActive("/Assignments") ? "active" : "")">Assignments</a>
-
-                <div class="nav-dropdown @(IsActive("/Workflow") ? "active" : "")">
-                    <span class="nav-dropdown-label">Workflows ▾</span>
-                    <div class="nav-dropdown-menu">
-                        <a asp-controller="Workflow" asp-action="Requests">Asset Requests</a>
-                        <a asp-controller="Workflow" asp-action="Repairs">Repairs &amp; Replacement</a>
-                        <a asp-controller="Workflow" asp-action="Loans">Loans &amp; Exit Grants</a>
-                        <a asp-controller="Workflow" asp-action="Rfid">RFID Monitoring</a>
-                    </div>
-                </div>
-
-                <a asp-controller="Audit" asp-action="Index" class="@(IsActive("/Audit") ? "active" : "")">Audit</a>
-
-                <div class="nav-dropdown @(IsActive("/Reports") ? "active" : "")">
-                    <span class="nav-dropdown-label">Reports ▾</span>
-                    <div class="nav-dropdown-menu">
-                        <a asp-controller="Reports" asp-action="Index">Asset Register</a>
-                        <a asp-controller="Reports" asp-action="Depreciation">Depreciation</a>
-                        <a asp-controller="Reports" asp-action="Aging">Asset Aging</a>
-                    </div>
-                </div>
-
-                <div class="nav-dropdown @(IsActive("/Contractors") || IsActive("/Staff") ? "active" : "")">
-                    <span class="nav-dropdown-label">Admin ▾</span>
-                    <div class="nav-dropdown-menu">
-                        <a asp-controller="Contractors" asp-action="Index">Contractors</a>
-                        <a asp-controller="Staff" asp-action="Index">Staff Registry</a>
-                        <a href="/dashboard">Analytics Dashboard</a>
-                    </div>
-                </div>
-            </nav>
-
-            <div class="nav-actions">
-                <div class="nav-user">
-                    <div class="avatar">@initials</div>
-                    <div>
-                        <div style="font-size:0.8rem;font-weight:600;color:#fff;line-height:1.2;">@sessionUser</div>
-                        <div class="role-badge-header">@sessionRole</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <div class="content-wrapper">
-        <main class="container">
-            @if (TempData["Success"] is string success)
-            {
-                <div class="alert alert-success"><span>✓</span> @success</div>
-            }
-            @if (TempData["Error"] is string error)
-            {
-                <div class="alert alert-error"><span>⚠</span> @error</div>
-            }
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="site-footer">
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-            <img src="~/firstregistrars-logo.png" alt="First Registrars" class="footer-logo" />
-            <span>&copy; @DateTime.Now.Year First Registrars &amp; Investor Services Ltd. All rights reserved.</span>
-        </div>
-        <span style="opacity:0.6;">FRISL Enterprise Asset Management System v2.0</span>
-    </footer>
 </body>
 </html>

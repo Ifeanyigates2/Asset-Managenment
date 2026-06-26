@@ -1,12 +1,19 @@
 using FrislEams.Web.Components;
+using FrislEams.Web.Configuration;
 using FrislEams.Web.Data;
+using FrislEams.Web.Middleware;
 using FrislEams.Web.Services;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
+
+AppDbContext.RegisterClassMaps();
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseUrls("http://0.0.0.0:5000");
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
@@ -22,27 +29,65 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.Configure<MongoDbOptions>(builder.Configuration.GetSection(MongoDbOptions.SectionName));
+builder.Services.AddSingleton<IMongoClient>(sp =>
+{
+    var options = sp.GetRequiredService<IOptions<MongoDbOptions>>().Value;
+    if (string.IsNullOrWhiteSpace(options.ConnectionString))
+    {
+        throw new InvalidOperationException("MongoDb:ConnectionString is not configured.");
+    }
+
+    return new MongoClient(options.ConnectionString);
+});
+builder.Services.AddScoped<AppDbContext>();
 
 builder.Services.AddScoped<TagCodeGenerator>();
 builder.Services.AddScoped<AssetLifecycleService>();
 builder.Services.AddScoped<RfidMonitoringService>();
+builder.Services.AddScoped<FeatureHubService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<ReportingService>();
 builder.Services.AddScoped<RoleGuard>();
+builder.Services.AddScoped<SystemAuditService>();
+builder.Services.AddScoped<RfidTagService>();
+builder.Services.AddScoped<StockVerificationService>();
 builder.Services.AddScoped<IntegrationOrchestrator>();
 builder.Services.AddSingleton<IIntegrationQueue, IntegrationQueue>();
 builder.Services.AddHostedService<IntegrationWorker>();
+builder.Services.AddSingleton<MongoWorkbookImportService>();
+builder.Services.AddScoped<MongoVendorService>();
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+app.UseForwardedHeaders();
+
+if (args.Length > 0 && string.Equals(args[0], "import-workbook", StringComparison.OrdinalIgnoreCase))
 {
+    var workbookPath = args.Length > 1 ? args[1] : throw new InvalidOperationException("Please provide the workbook path.");
+    var importer = app.Services.GetRequiredService<MongoWorkbookImportService>();
+    var summary = await importer.ImportAsync(workbookPath);
+    Console.WriteLine($"Imported {summary.ImportedRows} rows across {summary.SheetCount} sheets into MongoDB database '{summary.DatabaseName}' with batch id {summary.BatchId}.");
+    return;
+}
+
+Console.WriteLine("FRISL EAMS startup: initializing MongoDB and seed data...");
+try
+{
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
-    SeedData.Initialize(db);
+    await SeedData.InitializeAsync(db);
+    Console.WriteLine("FRISL EAMS startup: database ready.");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"FRISL EAMS startup warning: database initialization failed: {ex.Message}");
 }
 
 if (!app.Environment.IsDevelopment())
@@ -59,6 +104,7 @@ else
 app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
+app.UseMiddleware<PortalAccessMiddleware>();
 
 app.MapControllers();
 app.MapControllerRoute(
@@ -68,4 +114,5 @@ app.MapControllerRoute(
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+Console.WriteLine("FRISL EAMS startup: starting web host...");
 app.Run();

@@ -57,9 +57,10 @@ public class AssetLifecycleService(AppDbContext db)
         if (nextStatus is AssetStatus.PendingReplacement or AssetStatus.RecalledToStorage or AssetStatus.Damaged)
         {
             var storeId = db.Locations
-                .Where(l => l.Code == "STORE")
-                .Select(l => (int?)l.Id)
-                .FirstOrDefault();
+            .AsQueryable()
+            .Where(l => l.Code == "STORE")
+            .Select(l => (int?)l.Id)
+            .FirstOrDefault();
             if (storeId.HasValue)
                 asset.CurrentLocationId = storeId;
         }
@@ -77,6 +78,7 @@ public class AssetLifecycleService(AppDbContext db)
             ChangedAt = DateTime.UtcNow
         });
 
+        db.Assets.Update(asset);
         return true;
     }
 }

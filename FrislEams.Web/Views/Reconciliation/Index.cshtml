@@ -1,0 +1,23 @@
+@model FrislEams.Web.Services.ReconciliationSummary
+@{ ViewData["Title"] = "Reconciliation"; }
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Reconciliation</h1>
+        <p class="page-subtitle">Register vs. physical audit and RFID compliance status</p>
+    </div>
+    <a asp-controller="Audit" asp-action="Index" class="btn btn-outline">Open Audits</a>
+</div>
+
+<div class="cards-grid cards-grid-4">
+    <div class="metric-card"><div class="metric-label">Total Assets</div><div class="metric-value">@Model.TotalAssets</div></div>
+    <div class="metric-card success"><div class="metric-label">Matched</div><div class="metric-value">@Model.Matched</div></div>
+    <div class="metric-card danger"><div class="metric-label">Unmatched</div><div class="metric-value">@Model.Unmatched</div></div>
+    <div class="metric-card gold"><div class="metric-label">Compliance</div><div class="metric-value">@Model.CompliancePercent%</div></div>
+</div>
+
+<div class="info-card" style="margin-top:1.5rem;">
+    <p><strong>Open audit sessions:</strong> @Model.OpenAuditSessions</p>
+    <p><strong>RFID alerts:</strong> @Model.RfidAlerts</p>
+    <p class="text-muted">Use audit sessions to reconcile physical counts against the register. Exceptions are tracked in the Exceptions module.</p>
+</div>

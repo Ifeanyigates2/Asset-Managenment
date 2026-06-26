@@ -22,6 +22,25 @@ public class Location
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
+    public string LocationType { get; set; } = "Branch";
+    public int? ParentLocationId { get; set; }
+}
+
+public class AssetType
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public int AssetCategoryId { get; set; }
+    public AssetCategory? AssetCategory { get; set; }
+}
+
+public class Manufacturer
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
 }
 
 public class Staff
@@ -82,6 +101,7 @@ public class Asset
     public string? SerialNumber { get; set; }
     public string? ModelNumber { get; set; }
     public string? Brand { get; set; }
+    public string? TagNumber { get; set; }
     public DateTime? WarrantyExpiryDate { get; set; }
     public int? ExpectedServiceYears { get; set; }
     public string CurrentCondition { get; set; } = "Good";
@@ -101,11 +121,79 @@ public class Asset
 public class RfidTag
 {
     public int Id { get; set; }
-    public int AssetId { get; set; }
+    public int? AssetId { get; set; }
     public Asset? Asset { get; set; }
     public string RfidCode { get; set; } = string.Empty;
+    public string TagStatus { get; set; } = RfidTagStatus.Blank;
     public bool IsActive { get; set; } = true;
+    public string? EncodedBy { get; set; }
+    public DateTime? EncodedAt { get; set; }
     public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
+}
+
+public class AssetTransfer
+{
+    public int Id { get; set; }
+    public int AssetId { get; set; }
+    public Asset? Asset { get; set; }
+    public int FromDepartmentId { get; set; }
+    public Department? FromDepartment { get; set; }
+    public int ToDepartmentId { get; set; }
+    public Department? ToDepartment { get; set; }
+    public int? FromLocationId { get; set; }
+    public Location? FromLocation { get; set; }
+    public int? ToLocationId { get; set; }
+    public Location? ToLocation { get; set; }
+    public string Status { get; set; } = "Pending";
+    public string RequestedBy { get; set; } = string.Empty;
+    public string? ApprovedBy { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public string? DepartureRfidScan { get; set; }
+    public DateTime? DepartureScannedAt { get; set; }
+    public string? ArrivalRfidScan { get; set; }
+    public DateTime? ArrivalScannedAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class StockVerificationSession
+{
+    public int Id { get; set; }
+    public int? DepartmentId { get; set; }
+    public Department? Department { get; set; }
+    public int? LocationId { get; set; }
+    public Location? Location { get; set; }
+    public string InitiatedBy { get; set; } = string.Empty;
+    public string Status { get; set; } = "InProgress";
+    public int FoundCount { get; set; }
+    public int MissingCount { get; set; }
+    public int UnexpectedCount { get; set; }
+    public int DuplicateCount { get; set; }
+    public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? CompletedAt { get; set; }
+}
+
+public class StockVerificationScan
+{
+    public int Id { get; set; }
+    public int SessionId { get; set; }
+    public StockVerificationSession? Session { get; set; }
+    public string RfidCode { get; set; } = string.Empty;
+    public int? AssetId { get; set; }
+    public Asset? Asset { get; set; }
+    public string ResultType { get; set; } = string.Empty;
+    public DateTime ScannedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class SystemAuditLog
+{
+    public int Id { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string EntityType { get; set; } = string.Empty;
+    public string? EntityId { get; set; }
+    public string? PreviousValue { get; set; }
+    public string? NewValue { get; set; }
+    public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
 }
 
 public class AssetAssignment
@@ -302,4 +390,23 @@ public class IntegrationEventLog
     public string? ProcessingNote { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ProcessedAt { get; set; }
+}
+
+public class UserAccount
+{
+    public int Id { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string Role { get; set; } = "Backoffice";
+    public string? EmployeeId { get; set; }
+    public string? Email { get; set; }
+    public string? PhoneNumber { get; set; }
+    public string? Designation { get; set; }
+    public int? DepartmentId { get; set; }
+    public int? BranchLocationId { get; set; }
+    public bool MustChangePassword { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

@@ -3,7 +3,6 @@ using FrislEams.Web.Domain;
 using FrislEams.Web.Models;
 using FrislEams.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FrislEams.Web.Controllers;
 
@@ -18,7 +17,7 @@ public class WorkflowController(
     [HttpGet]
     public async Task<IActionResult> Requests()
     {
-        ViewBag.Staff = await db.Staff.Include(s => s.Department).ToListAsync();
+        ViewBag.Staff = await db.Staff.AsQueryable().Include(s => s.Department).ToListAsync();
         ViewBag.Assets = await db.Assets.ToListAsync();
         ViewBag.Departments = await db.Departments.ToListAsync();
         var requests = await db.AssetRequests
@@ -94,7 +93,7 @@ public class WorkflowController(
             .Include(a => a.CurrentDepartment)
             .ToListAsync();
         ViewBag.Staff = await db.Staff.ToListAsync();
-        ViewBag.Contractors = await db.RepairContractors.Where(c => c.IsActive).ToListAsync();
+        ViewBag.Contractors = await db.RepairContractors.AsQueryable().Where(c => c.IsActive).ToListAsync();
         var repairs = await db.RepairRequests
             .Include(r => r.Asset)
             .Include(r => r.ReportedByStaff)
@@ -129,7 +128,7 @@ public class WorkflowController(
     {
         if (!roleGuard.HasAnyRole(this, RoleName.Admin)) return Forbid();
 
-        var repair = await db.RepairRequests.Include(r => r.Asset).FirstOrDefaultAsync(r => r.Id == vm.RepairRequestId);
+        var repair = await db.RepairRequests.AsQueryable().Include(r => r.Asset).FirstOrDefaultAsync(r => r.Id == vm.RepairRequestId);
         if (repair?.Asset is null) return NotFound();
 
         repair.ApprovedAction = vm.Action;
@@ -153,7 +152,7 @@ public class WorkflowController(
     public async Task<IActionResult> CompleteRepair(int repairId, string notes, decimal? cost)
     {
         if (!roleGuard.HasAnyRole(this, RoleName.Admin)) return Forbid();
-        var repair = await db.RepairRequests.Include(r => r.Asset).FirstOrDefaultAsync(r => r.Id == repairId);
+        var repair = await db.RepairRequests.AsQueryable().Include(r => r.Asset).FirstOrDefaultAsync(r => r.Id == repairId);
         if (repair?.Asset is null) return NotFound();
 
         repair.Status = "Completed";
@@ -212,7 +211,7 @@ public class WorkflowController(
     {
         if (!roleGuard.HasAnyRole(this, RoleName.Admin, RoleName.DepartmentHead)) return Forbid();
 
-        var loan = await db.LoanRequests.Include(l => l.Asset).FirstOrDefaultAsync(l => l.Id == vm.LoanRequestId);
+        var loan = await db.LoanRequests.AsQueryable().Include(l => l.Asset).FirstOrDefaultAsync(l => l.Id == vm.LoanRequestId);
         if (loan?.Asset is null) return NotFound();
 
         loan.ApprovedBy = vm.ApprovedBy;
@@ -247,7 +246,7 @@ public class WorkflowController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ReturnLoan(int loanId)
     {
-        var loan = await db.LoanRequests.Include(l => l.Asset).FirstOrDefaultAsync(l => l.Id == loanId);
+        var loan = await db.LoanRequests.AsQueryable().Include(l => l.Asset).FirstOrDefaultAsync(l => l.Id == loanId);
         if (loan?.Asset is null) return NotFound();
 
         loan.ActualReturnDate = DateTime.UtcNow;

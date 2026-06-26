@@ -1,0 +1,36 @@
+/* Admin Portal — Green theme */
+.portal-sidebar-admin {
+    background: linear-gradient(180deg, #2e7d32 0%, #1b5e20 100%);
+}
+
+.portal-theme-admin .portal-main-header-admin {
+    border-bottom: 3px solid #2e7d32;
+}
+
+.portal-theme-admin .portal-header-name { color: #1b5e20; }
+
+.portal-theme-admin .portal-stat-card {
+    border-left-color: #2e7d32;
+}
+
+.portal-theme-admin .portal-stat-card .value { color: #1b5e20; }
+
+.portal-theme-admin .portal-panel h3 {
+    color: #1b5e20;
+    border-bottom-color: #c8e6c9;
+}
+
+.portal-theme-admin .activity-bar { background: #43a047; }
+
+.portal-theme-admin .system-health { background: #e8f5e9; }
+
+.portal-theme-admin .portal-spec-features { border-top: 3px solid #2e7d32; }
+
+.portal-theme-admin .portal-spec-goal { background: linear-gradient(135deg, #1b5e20, #43a047); }
+
+.portal-theme-admin .btn-primary {
+    background: #2e7d32;
+    border-color: #2e7d32;
+}
+
+.portal-theme-admin .page-header h1 { color: #1b5e20; }

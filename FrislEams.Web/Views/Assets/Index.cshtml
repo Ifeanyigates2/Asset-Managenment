@@ -7,6 +7,8 @@
     var filter = ViewBag.Filter;
     int total = ViewBag.TotalCount ?? Model.Count;
     decimal totalVal = ViewBag.TotalValue ?? 0m;
+    var currentRole = Context.Session.GetString("UserRole") ?? "Backoffice";
+    var canRegister = string.Equals(currentRole, "Backoffice", StringComparison.OrdinalIgnoreCase) || string.Equals(currentRole, "Admin", StringComparison.OrdinalIgnoreCase) || string.Equals(currentRole, "Auditor", StringComparison.OrdinalIgnoreCase);
 }
 
 <div class="page-header">
@@ -15,7 +17,10 @@
         <p class="page-subtitle">@total asset@(total != 1 ? "s" : "") found — Total Value: ₦@totalVal.ToString("N0")</p>
     </div>
     <div class="flex-gap">
-        <a asp-action="Register" class="btn btn-primary">+ Register Asset</a>
+        @if (canRegister)
+        {
+            <a asp-action="Register" class="btn btn-primary">+ Register Asset</a>
+        }
         <a asp-controller="Reports" asp-action="Index" class="btn btn-outline">Export Report</a>
     </div>
 </div>
@@ -55,6 +60,7 @@
         <thead>
             <tr>
                 <th>Tag Code</th>
+                <th>Tag Number</th>
                 <th>Asset Name</th>
                 <th>Category</th>
                 <th>Brand / Model</th>
@@ -90,6 +96,7 @@
             var warrantyExpired = item.WarrantyExpiryDate.HasValue && item.WarrantyExpiryDate.Value < DateTime.UtcNow;
             <tr>
                 <td><a asp-action="Detail" asp-route-id="@item.Id" class="tag-link">@item.TagCode</a></td>
+                <td><span class="monospace">@(item.TagNumber ?? "—")</span></td>
                 <td>
                     <a asp-action="Detail" asp-route-id="@item.Id" style="color:inherit;text-decoration:none;font-weight:500;">@item.AssetName</a>
                     @if (!string.IsNullOrEmpty(item.SerialNumber))

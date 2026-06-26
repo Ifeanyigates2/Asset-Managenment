@@ -1,0 +1,62 @@
+@{
+    ViewData["Title"] = "Assign RFID Tag";
+    var asset = ViewBag.Asset as FrislEams.Web.Models.Asset;
+    var existing = ViewBag.ExistingTag as FrislEams.Web.Models.RfidTag;
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Assign RFID Tag</h1>
+        <p class="page-subtitle">@asset?.TagCode — @asset?.AssetName</p>
+    </div>
+</div>
+
+@if (existing != null)
+{
+    <div class="info-card" style="margin-bottom:1rem;">
+        <strong>Current tag:</strong> <code>@existing.RfidCode</code> (@existing.TagStatus)
+        <form asp-action="Remove" method="post" style="display:inline;margin-left:1rem;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="assetId" value="@asset!.Id" />
+            <button type="submit" class="btn btn-sm btn-outline">Remove Tag</button>
+        </form>
+    </div>
+}
+
+<div class="form-card">
+    <h3>Write Mode — encode blank tag</h3>
+    <p class="text-muted">Place a blank RFID tag on the reader and click Write Tag.</p>
+    <form asp-action="Assign" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="assetId" value="@asset!.Id" />
+        <input type="hidden" name="action" value="write" />
+        <input type="hidden" name="rfidCode" value="" />
+        <button type="submit" class="btn btn-primary">Write RFID Tag</button>
+    </form>
+</div>
+
+<div class="form-card" style="margin-top:1rem;">
+    <h3>Assign existing EPC</h3>
+    <form asp-action="Assign" method="post" class="form-inline">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="assetId" value="@asset!.Id" />
+        <input type="hidden" name="action" value="assign" />
+        <input type="text" name="rfidCode" class="form-control" placeholder="Scan or enter RFID code" required style="max-width:280px;display:inline-block;" />
+        <button type="submit" class="btn btn-outline">Assign Tag</button>
+    </form>
+</div>
+
+@if (existing != null)
+{
+    <div class="form-card" style="margin-top:1rem;">
+        <h3>Replace Tag</h3>
+        <form asp-action="Replace" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="assetId" value="@asset!.Id" />
+            <input type="text" name="newRfidCode" class="form-control" placeholder="New RFID code" required style="max-width:280px;display:inline-block;" />
+            <button type="submit" class="btn btn-outline">Replace Tag</button>
+        </form>
+    </div>
+}
+
+<a asp-controller="Assets" asp-action="Detail" asp-route-id="@asset!.Id" class="btn btn-outline" style="margin-top:1rem;">Back to Asset</a>

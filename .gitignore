@@ -11,3 +11,11 @@ obj/
 FrislEams.Web/bin/
 FrislEams.Web/obj/
 FrislEams.Web/eams.db
+FrislEams.Web/appsettings.Development.json
+
+.local/
+.ifeanyi/
+~$*
+.~*
+
+FrislEams.Web/Models/playground-1.mongodb.js

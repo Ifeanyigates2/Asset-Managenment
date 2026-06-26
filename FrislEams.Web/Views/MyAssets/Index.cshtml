@@ -1,0 +1,31 @@
+@model List<FrislEams.Web.Models.Asset>
+@{ ViewData["Title"] = "My Assets"; }
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>My Assets</h1>
+        <p class="page-subtitle">Assets currently assigned to you</p>
+    </div>
+    <a asp-controller="Workflow" asp-action="Rfid" class="btn btn-primary">Scan RFID</a>
+</div>
+
+<div class="info-card">
+    <table class="data-table">
+        <thead>
+            <tr><th>Tag</th><th>Asset</th><th>Category</th><th>Status</th><th>Location</th><th></th></tr>
+        </thead>
+        <tbody>
+        @foreach (var asset in Model)
+        {
+            <tr>
+                <td>@asset.TagCode</td>
+                <td>@asset.AssetName</td>
+                <td>@asset.AssetCategory?.Name</td>
+                <td>@asset.CurrentStatus</td>
+                <td>@asset.CurrentLocation?.Name</td>
+                <td><a asp-controller="Assets" asp-action="Detail" asp-route-id="@asset.Id">View</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

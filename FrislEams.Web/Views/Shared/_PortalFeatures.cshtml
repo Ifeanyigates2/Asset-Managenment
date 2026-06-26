@@ -1,0 +1,80 @@
+@{
+    var portal = ViewData["PortalName"] as string
+        ?? Context.Session.GetString("UserPortal")
+        ?? "Backoffice";
+}
+
+<div class="portal-spec-grid">
+    <div class="portal-spec-panel portal-spec-features">
+        <h4>Key Features</h4>
+        @if (portal == "Admin")
+        {
+            <ul class="portal-checklist">
+                <li>User &amp; role management</li>
+                <li>Configure system settings and preferences</li>
+                <li>Manage asset categories, locations, and vendors</li>
+                <li>Setup RFID readers and tag standards</li>
+                <li>Define workflows and approval rules</li>
+                <li>Backup and data management</li>
+                <li>View audit logs and activity trails</li>
+                <li>System integrations management</li>
+            </ul>
+        }
+        else if (portal == "Auditor")
+        {
+            <ul class="portal-checklist">
+                <li>View complete asset register and history</li>
+                <li>Review audit trails and system logs</li>
+                <li>Run reconciliation and compliance checks</li>
+                <li>Identify and track exceptions</li>
+                <li>Generate audit and compliance reports</li>
+                <li>Export data for external audit</li>
+            </ul>
+            <p class="portal-readonly-note">Read-only access — no data modification</p>
+        }
+        else if (portal == "Staff")
+        {
+            <ul class="portal-checklist">
+                <li>View assets assigned to self</li>
+                <li>Scan RFID tags (via mobile/handheld reader)</li>
+                <li>Request asset movement or transfer</li>
+                <li>Return/handover assets</li>
+                <li>Report issues or faults</li>
+                <li>View notifications and approvals</li>
+                <li>Update personal profile</li>
+            </ul>
+        }
+        else
+        {
+            <ul class="portal-checklist">
+                <li>Oversees all asset operations and lifecycle</li>
+                <li>Approve asset movements, write-offs and disposal</li>
+                <li>Bulk asset import/export</li>
+                <li>RFID tag encoding &amp; assignment overview</li>
+                <li>Reconciliation management &amp; exception handling</li>
+                <li>Generate operational reports</li>
+                <li>Manage departments and locations (limited)</li>
+                <li>Monitors system activity</li>
+            </ul>
+        }
+    </div>
+    <div class="portal-spec-panel portal-spec-goal">
+        <h4>Primary Goal</h4>
+        @if (portal == "Admin")
+        {
+            <p class="portal-goal-text">⚙️ Maintain system security, configuration, and user management.</p>
+        }
+        else if (portal == "Auditor")
+        {
+            <p class="portal-goal-text">📋 Ensure transparency, accuracy, and compliance of assets.</p>
+        }
+        else if (portal == "Staff")
+        {
+            <p class="portal-goal-text">👤 Enable efficient usage, movement, and accountability of assets.</p>
+        }
+        else
+        {
+            <p class="portal-goal-text">🎯 Ensure smooth day-to-day operations, accuracy, and timeliness.</p>
+        }
+    </div>
+</div>

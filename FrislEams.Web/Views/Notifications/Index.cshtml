@@ -1,0 +1,45 @@
+@model List<FrislEams.Web.Models.Notification>
+@{ ViewData["Title"] = "Notifications"; }
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Notifications</h1>
+        <p class="page-subtitle">System alerts, approvals, and activity updates</p>
+    </div>
+</div>
+
+<div class="info-card">
+    @if (!Model.Any())
+    {
+        <p class="text-muted">No notifications.</p>
+    }
+    else
+    {
+        <table class="data-table">
+            <thead>
+                <tr><th>Title</th><th>Message</th><th>Type</th><th>Date</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+            @foreach (var n in Model)
+            {
+                <tr class="@(n.IsRead ? "" : "row-highlight")">
+                    <td><strong>@n.Title</strong></td>
+                    <td>@n.Message</td>
+                    <td>@n.Type</td>
+                    <td>@n.CreatedAt.ToString("dd MMM yyyy")</td>
+                    <td>@(n.IsRead ? "Read" : "Unread")</td>
+                    <td>
+                        @if (!n.IsRead)
+                        {
+                            <form method="post" asp-action="MarkRead" asp-route-id="@n.Id" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline">Mark read</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
