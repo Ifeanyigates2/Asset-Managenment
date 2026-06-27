@@ -167,14 +167,19 @@ public static class PortalService
             return true;
         }
 
-        if (path.StartsWith("/rfidtags") || path.StartsWith("/rfidreader"))
+        if (path.StartsWith("/rfidreader"))
         {
-            return PortalCapabilities.CanEncodeRfid(portal) || portal == StaffPortal;
+            return PortalCapabilities.CanScanRfid(portal);
+        }
+
+        if (path.StartsWith("/rfidtags"))
+        {
+            return PortalCapabilities.CanViewRfidTags(portal);
         }
 
         if (path.StartsWith("/stockverification"))
         {
-            return portal is BackofficePortal or AdminPortal or AuditorPortal;
+            return PortalCapabilities.CanScanRfid(portal);
         }
 
         if (path.StartsWith("/transfers"))

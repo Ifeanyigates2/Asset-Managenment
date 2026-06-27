@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "RFID Tag Management";
     var assets = ViewBag.Assets as Dictionary<int, FrislEams.Web.Models.Asset> ?? new();
+    var canManage = ViewBag.CanManage as bool? ?? false;
 }
 
 <div class="page-header">
@@ -27,7 +28,7 @@
                 <td>@(tag.IsActive ? "Yes" : "No")</td>
                 <td style="font-size:0.85rem;">@(tag.EncodedAt?.ToString("dd MMM yyyy") ?? "—")</td>
                 <td>
-                    @if (asset != null)
+                    @if (canManage && asset != null)
                     {
                         <a asp-action="Assign" asp-route-assetId="@asset.Id" class="btn btn-sm btn-outline">Manage</a>
                     }

@@ -16,6 +16,12 @@ public static class PortalCapabilities
     public static bool CanEncodeRfid(string portal)
         => portal is PortalService.BackofficePortal or PortalService.AdminPortal;
 
+    public static bool CanScanRfid(string portal)
+        => portal is PortalService.AuditorPortal or PortalService.BackofficePortal or PortalService.AdminPortal;
+
+    public static bool CanViewRfidTags(string portal)
+        => CanEncodeRfid(portal) || portal == PortalService.AuditorPortal;
+
     public static bool CanReconcile(string portal)
         => portal is PortalService.BackofficePortal or PortalService.AdminPortal or PortalService.AuditorPortal;
 

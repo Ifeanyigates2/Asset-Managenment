@@ -10,13 +10,17 @@ public class RfidTagsController(AppDbContext db, RfidTagService rfidTagService, 
     private bool CanManage() =>
         roleGuard.HasAnyRole(this, RoleName.Admin, RoleName.Backoffice);
 
+    private bool CanView() =>
+        CanManage() || roleGuard.HasAnyRole(this, RoleName.Auditor);
+
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        if (!CanManage()) return Forbid();
+        if (!CanView()) return Forbid();
         var tags = await rfidTagService.GetAllAsync();
         var assets = await db.Assets.AsQueryable().ToDictionaryAsync(a => a.Id, a => a);
         ViewBag.Assets = assets;
+        ViewBag.CanManage = CanManage();
         return View(tags);
     }
 

@@ -60,6 +60,28 @@
 </div>
 
 <div class="portal-panel" style="margin-top:1rem;">
+    <h3>RFID &amp; Verification</h3>
+    <div class="staff-quick-actions">
+        <a asp-controller="RfidReader" asp-action="Index" class="staff-action-btn">
+            <span class="action-ico">📡</span>
+            <span>Scan RFID Tag</span>
+        </a>
+        <a asp-controller="RfidReader" asp-action="Index" asp-route-mode="verify" class="staff-action-btn">
+            <span class="action-ico">📲</span>
+            <span>Verify RFID Tag</span>
+        </a>
+        <a asp-controller="StockVerification" asp-action="Index" class="staff-action-btn">
+            <span class="action-ico">✅</span>
+            <span>Stock Verification</span>
+        </a>
+        <a asp-controller="RfidTags" asp-action="Index" class="staff-action-btn">
+            <span class="action-ico">🏷️</span>
+            <span>RFID Tag Register</span>
+        </a>
+    </div>
+</div>
+
+<div class="portal-panel" style="margin-top:1rem;">
     <h3>Exceptions Summary</h3>
     @{
         var rfidCount = exceptions.Count(e => e.Type == "RFID Alert");
