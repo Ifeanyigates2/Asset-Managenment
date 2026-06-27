@@ -3,7 +3,7 @@
     var currentPath = Context.Request.Path.Value ?? "/";
     bool IsActive(string path) => currentPath.StartsWith(path, StringComparison.OrdinalIgnoreCase);
 }
-<aside class="portal-sidebar portal-sidebar-auditor">
+<aside class="portal-sidebar portal-sidebar-auditor" id="portalSidebar">
     <div class="portal-sidebar-brand">
         <div class="portal-sidebar-icon">🔍</div>
         <div>
