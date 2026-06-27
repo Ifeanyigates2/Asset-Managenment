@@ -25,11 +25,11 @@
 </div>
 
 <div class="portal-stat-row">
-    <div class="portal-stat-card"><div class="label">Total Assets</div><div class="value">@(manual?.TotalAssets ?? m.TotalAssets).ToString("N0")</div></div>
-    <div class="portal-stat-card"><div class="label">Assets Assigned</div><div class="value">@(manual?.AssetsAssigned ?? m.ActiveAssigned).ToString("N0")</div></div>
-    <div class="portal-stat-card"><div class="label">Awaiting RFID</div><div class="value">@(manual?.AssetsAwaitingRfid ?? 0).ToString("N0")</div></div>
-    <div class="portal-stat-card"><div class="label">Without Custodian</div><div class="value">@(manual?.AssetsWithoutCustodian ?? 0).ToString("N0")</div></div>
-    <div class="portal-stat-card"><div class="label">Pending Transfers</div><div class="value">@(manual?.PendingTransfers ?? 0).ToString("N0")</div></div>
+    <div class="portal-stat-card"><div class="label">Total Assets</div><div class="value">@((manual?.TotalAssets ?? m.TotalAssets).ToString("N0"))</div></div>
+    <div class="portal-stat-card"><div class="label">Assets Assigned</div><div class="value">@((manual?.AssetsAssigned ?? m.ActiveAssigned).ToString("N0"))</div></div>
+    <div class="portal-stat-card"><div class="label">Awaiting RFID</div><div class="value">@((manual?.AssetsAwaitingRfid ?? 0).ToString("N0"))</div></div>
+    <div class="portal-stat-card"><div class="label">Without Custodian</div><div class="value">@((manual?.AssetsWithoutCustodian ?? 0).ToString("N0"))</div></div>
+    <div class="portal-stat-card"><div class="label">Pending Transfers</div><div class="value">@((manual?.PendingTransfers ?? 0).ToString("N0"))</div></div>
 </div>
 
 <div class="portal-dash-grid">
