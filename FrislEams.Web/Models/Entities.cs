@@ -392,6 +392,55 @@ public class IntegrationEventLog
     public DateTime? ProcessedAt { get; set; }
 }
 
+public class AuditScanPeriod
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string Status { get; set; } = "Open";
+    public string Auditor { get; set; } = string.Empty;
+    public int? DistinctScannedCount { get; set; }
+    public int? DiscrepancyCount { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class AuditTemporaryScan
+{
+    public int Id { get; set; }
+    public int PeriodId { get; set; }
+    public AuditScanPeriod? Period { get; set; }
+    public int ScanNumber { get; set; }
+    public string Source { get; set; } = "external_reader";
+    public int ItemCount { get; set; }
+    public int DuplicateInBatchCount { get; set; }
+    public DateTime ScannedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class AuditTemporaryScanItem
+{
+    public int Id { get; set; }
+    public int ScanId { get; set; }
+    public AuditTemporaryScan? Scan { get; set; }
+    public string RfidCode { get; set; } = string.Empty;
+    public int? AssetId { get; set; }
+    public Asset? Asset { get; set; }
+    public DateTime ScannedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class AuditDiscrepancy
+{
+    public int Id { get; set; }
+    public int PeriodId { get; set; }
+    public AuditScanPeriod? Period { get; set; }
+    public string Type { get; set; } = string.Empty;
+    public string RfidCode { get; set; } = string.Empty;
+    public string? AssetTag { get; set; }
+    public int? AssetId { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 public class UserAccount
 {
     public int Id { get; set; }

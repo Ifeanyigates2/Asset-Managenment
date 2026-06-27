@@ -66,6 +66,7 @@ builder.Services.AddScoped<RoleGuard>();
 builder.Services.AddScoped<SystemAuditService>();
 builder.Services.AddScoped<RfidTagService>();
 builder.Services.AddScoped<StockVerificationService>();
+builder.Services.AddScoped<AuditScanService>();
 builder.Services.AddScoped<IntegrationOrchestrator>();
 builder.Services.AddSingleton<IIntegrationQueue, IntegrationQueue>();
 builder.Services.AddHostedService<IntegrationWorker>();

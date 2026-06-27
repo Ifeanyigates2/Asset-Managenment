@@ -21,6 +21,7 @@
         <a asp-controller="RfidReader" asp-action="Index" class="portal-nav-item @(IsActive("/RfidReader") ? "active" : "")"><span class="nav-ico">📡</span> Scan RFID</a>
         <a asp-controller="RfidTags" asp-action="Index" class="portal-nav-item @(IsActive("/RfidTags") ? "active" : "")"><span class="nav-ico">🏷️</span> RFID Tags</a>
         <a asp-controller="StockVerification" asp-action="Index" class="portal-nav-item @(IsActive("/StockVerification") ? "active" : "")"><span class="nav-ico">✅</span> Stock Verification</a>
+        <a asp-controller="AuditScan" asp-action="Index" class="portal-nav-item @(IsActive("/AuditScan") ? "active" : "")"><span class="nav-ico">📅</span> Audit Scan Periods</a>
     </nav>
     @await Html.PartialAsync("_Sidebars/_PortalSidebarFooter")
 </aside>

@@ -40,6 +40,10 @@ public sealed class AppDbContext
         RfidEvents = CreateSet<RfidEvent>("rfidEvents");
         AuditSessions = CreateSet<AuditSession>("auditSessions");
         AuditResults = CreateSet<AuditResult>("auditResults");
+        AuditScanPeriods = CreateSet<AuditScanPeriod>("auditScanPeriods");
+        AuditTemporaryScans = CreateSet<AuditTemporaryScan>("auditTemporaryScans");
+        AuditTemporaryScanItems = CreateSet<AuditTemporaryScanItem>("auditTemporaryScanItems");
+        AuditDiscrepancies = CreateSet<AuditDiscrepancy>("auditDiscrepancies");
         Notifications = CreateSet<Notification>("notifications");
         ProcurementRecords = CreateSet<ProcurementRecord>("procurementRecords");
         IntegrationEventLogs = CreateSet<IntegrationEventLog>("integrationEventLogs");
@@ -72,6 +76,10 @@ public sealed class AppDbContext
     public MongoEntitySet<RfidEvent> RfidEvents { get; }
     public MongoEntitySet<AuditSession> AuditSessions { get; }
     public MongoEntitySet<AuditResult> AuditResults { get; }
+    public MongoEntitySet<AuditScanPeriod> AuditScanPeriods { get; }
+    public MongoEntitySet<AuditTemporaryScan> AuditTemporaryScans { get; }
+    public MongoEntitySet<AuditTemporaryScanItem> AuditTemporaryScanItems { get; }
+    public MongoEntitySet<AuditDiscrepancy> AuditDiscrepancies { get; }
     public MongoEntitySet<Notification> Notifications { get; }
     public MongoEntitySet<ProcurementRecord> ProcurementRecords { get; }
     public MongoEntitySet<IntegrationEventLog> IntegrationEventLogs { get; }
@@ -205,6 +213,10 @@ public sealed class AppDbContext
         RegisterMap<RfidEvent>();
         RegisterMap<AuditSession>();
         RegisterMap<AuditResult>();
+        RegisterMap<AuditScanPeriod>();
+        RegisterMap<AuditTemporaryScan>();
+        RegisterMap<AuditTemporaryScanItem>();
+        RegisterMap<AuditDiscrepancy>();
         RegisterMap<Notification>();
         RegisterMap<ProcurementRecord>();
         RegisterMap<IntegrationEventLog>();
@@ -239,6 +251,10 @@ public sealed class AppDbContext
         await RfidEvents.SaveChangesAsync(cancellationToken);
         await AuditSessions.SaveChangesAsync(cancellationToken);
         await AuditResults.SaveChangesAsync(cancellationToken);
+        await AuditScanPeriods.SaveChangesAsync(cancellationToken);
+        await AuditTemporaryScans.SaveChangesAsync(cancellationToken);
+        await AuditTemporaryScanItems.SaveChangesAsync(cancellationToken);
+        await AuditDiscrepancies.SaveChangesAsync(cancellationToken);
         await Notifications.SaveChangesAsync(cancellationToken);
         await ProcurementRecords.SaveChangesAsync(cancellationToken);
         await IntegrationEventLogs.SaveChangesAsync(cancellationToken);

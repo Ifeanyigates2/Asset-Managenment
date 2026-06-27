@@ -1,0 +1,97 @@
+@model FrislEams.Web.Models.AuditScanPeriod
+@{
+    ViewData["Title"] = "Audit Scan Period";
+    var scans = ViewBag.Scans as List<FrislEams.Web.Models.AuditTemporaryScan> ?? new();
+    var nextScanNumber = scans.Count == 0 ? 1 : scans.Max(s => s.ScanNumber) + 1;
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>@Model.Name</h1>
+        <p class="page-subtitle">
+            @Model.StartDate.ToString("dd MMM yyyy") – @Model.EndDate.ToString("dd MMM yyyy")
+            · Status: @Model.Status
+        </p>
+    </div>
+</div>
+
+<div class="portal-stat-row">
+    <div class="portal-stat-card"><div class="label">Scan Batches</div><div class="value">@scans.Count</div></div>
+    <div class="portal-stat-card"><div class="label">Distinct Tags</div><div class="value">@(Model.DistinctScannedCount?.ToString() ?? "—")</div></div>
+    <div class="portal-stat-card"><div class="label">Asset Concerns</div><div class="value">@(Model.DiscrepancyCount?.ToString() ?? "—")</div></div>
+    <div class="portal-stat-card"><div class="label">Next Scan #</div><div class="value">@nextScanNumber</div></div>
+</div>
+
+<div class="portal-panel" style="margin:1rem 0;">
+    <h3>Temporary Scan List</h3>
+    <p class="page-subtitle" style="margin-bottom:1rem;">External reader uploads appear here as Scan 1, Scan 2, Scan 3, etc.</p>
+    <div class="table-card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Scan</th>
+                    <th>Uploaded</th>
+                    <th>Source</th>
+                    <th>Tags Read</th>
+                    <th>Duplicates in Batch</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var scan in scans)
+            {
+                <tr>
+                    <td><strong>Scan @scan.ScanNumber</strong></td>
+                    <td>@scan.ScannedAt.ToString("dd MMM yyyy HH:mm")</td>
+                    <td>@scan.Source</td>
+                    <td>@scan.ItemCount</td>
+                    <td>@scan.DuplicateInBatchCount</td>
+                </tr>
+            }
+            @if (!scans.Any())
+            {
+                <tr><td colspan="5" class="text-muted">No scans uploaded yet. Upload Scan 1 from the external reader or paste codes below.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (Model.Status != "Closed")
+{
+    <div class="form-card" style="margin-bottom:1.5rem;">
+        <h3>Upload Scan Data</h3>
+        <p class="page-subtitle">Paste RFID codes from the external reader (one per line or comma-separated), or POST to <code>/api/audit/periods/@Model.Id/scans/{scanNumber}</code></p>
+        <form asp-action="UploadScan" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="periodId" value="@Model.Id" />
+            <div style="margin-bottom:0.75rem;">
+                <label>Scan number</label>
+                <select name="scanNumber" class="form-control" style="max-width:120px;">
+                    @for (var n = 1; n <= Math.Max(3, nextScanNumber); n++)
+                    {
+                        <option value="@n" selected="@(n == nextScanNumber)">Scan @n</option>
+                    }
+                </select>
+            </div>
+            <textarea name="rfidCodes" class="form-control" rows="6" placeholder="RFID001&#10;RFID002&#10;RFID003" required style="font-family:monospace;"></textarea>
+            <button type="submit" class="btn btn-primary" style="margin-top:0.75rem;">Save to Temporary Scan List</button>
+        </form>
+    </div>
+
+    @if (scans.Any())
+    {
+        <form asp-action="CheckDiscrepancies" method="post" style="margin-bottom:1.5rem;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="periodId" value="@Model.Id" />
+            <button type="submit" class="btn btn-primary">Check Discrepancies</button>
+            <span class="text-muted" style="margin-left:0.5rem;">Compares distinct scanned tags across all batches with the asset register</span>
+        </form>
+    }
+}
+
+@if (Model.Status == "DiscrepanciesChecked")
+{
+    <a asp-action="Discrepancies" asp-route-id="@Model.Id" class="btn btn-outline" style="margin-bottom:1rem;">View Asset Concerns</a>
+}
+
+<a asp-action="Index" class="btn btn-outline">Back to periods</a>

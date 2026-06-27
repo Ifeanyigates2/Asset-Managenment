@@ -263,3 +263,19 @@ public class RfidBatchScanVm
     [Required]
     public List<RfidScanVm> Scans { get; set; } = [];
 }
+
+public class AuditScanPeriodCreateVm
+{
+    [Required]
+    public string Name { get; set; } = string.Empty;
+    [Required]
+    public DateTime StartDate { get; set; }
+    [Required]
+    public DateTime EndDate { get; set; }
+}
+
+public class AuditScanBatchVm
+{
+    [Required]
+    public List<string> RfidCodes { get; set; } = [];
+}

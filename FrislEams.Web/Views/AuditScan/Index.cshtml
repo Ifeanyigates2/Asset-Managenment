@@ -1,0 +1,63 @@
+@model List<FrislEams.Web.Models.AuditScanPeriod>
+@{
+    ViewData["Title"] = "Audit Scan Periods";
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Audit Scan Periods</h1>
+        <p class="page-subtitle">Select an audit period by date, upload external reader scans, then check discrepancies against the asset register</p>
+    </div>
+</div>
+
+<div class="form-card" style="margin-bottom:1.5rem;">
+    <h3>Create Audit Period</h3>
+    <form asp-action="Create" method="post" class="form-inline">
+        @Html.AntiForgeryToken()
+        <input type="text" name="Name" class="form-control" placeholder="Period name (e.g. Q2 Branch Audit)" required style="max-width:240px;display:inline-block;" />
+        <input type="date" name="StartDate" class="form-control" required style="max-width:160px;display:inline-block;" />
+        <input type="date" name="EndDate" class="form-control" required style="max-width:160px;display:inline-block;" />
+        <button type="submit" class="btn btn-primary">Create Period</button>
+    </form>
+</div>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Period</th>
+                <th>Date Range</th>
+                <th>Auditor</th>
+                <th>Status</th>
+                <th>Distinct Tags</th>
+                <th>Concerns</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var p in Model)
+        {
+            <tr>
+                <td><strong>@p.Name</strong></td>
+                <td>@p.StartDate.ToString("dd MMM yyyy") – @p.EndDate.ToString("dd MMM yyyy")</td>
+                <td>@p.Auditor</td>
+                <td><span class="badge @(p.Status == "DiscrepanciesChecked" ? "badge-success" : "badge-warning")">@p.Status</span></td>
+                <td>@(p.DistinctScannedCount?.ToString() ?? "—")</td>
+                <td>@(p.DiscrepancyCount?.ToString() ?? "—")</td>
+                <td>
+                    <a asp-action="Period" asp-route-id="@p.Id">Open</a>
+                    @if (p.Status == "DiscrepanciesChecked")
+                    {
+                        <span> · </span>
+                        <a asp-action="Discrepancies" asp-route-id="@p.Id">Concerns</a>
+                    }
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="7" class="text-muted">No audit scan periods yet. Create one above to begin.</td></tr>
+        }
+        </tbody>
+    </table>
+</div>

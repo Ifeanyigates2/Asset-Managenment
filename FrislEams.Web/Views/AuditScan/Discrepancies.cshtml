@@ -1,0 +1,71 @@
+@model List<FrislEams.Web.Models.AuditDiscrepancy>
+@{
+    var period = ViewBag.Period as FrislEams.Web.Models.AuditScanPeriod;
+    var scans = ViewBag.Scans as List<FrislEams.Web.Models.AuditTemporaryScan> ?? new();
+    ViewData["Title"] = "Asset Concerns";
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Asset Concerns</h1>
+        <p class="page-subtitle">
+            @(period?.Name ?? "Audit period") — @scans.Count scan batch(es), @(period?.DistinctScannedCount ?? 0) distinct RFID tag(s)
+        </p>
+    </div>
+</div>
+
+<div class="portal-stat-row">
+    <div class="portal-stat-card"><div class="label">Total Concerns</div><div class="value">@Model.Count</div></div>
+    <div class="portal-stat-card"><div class="label">Unknown Tags</div><div class="value">@Model.Count(c => c.Type == "unknown_tag")</div></div>
+    <div class="portal-stat-card"><div class="label">Missing from Scan</div><div class="value">@Model.Count(c => c.Type == "not_in_scan")</div></div>
+    <div class="portal-stat-card"><div class="label">Other</div><div class="value">@Model.Count(c => c.Type is not ("unknown_tag" or "not_in_scan"))</div></div>
+</div>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>RFID</th>
+                <th>Asset Tag</th>
+                <th>Concern</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var c in Model)
+        {
+            var badgeClass = c.Type switch
+            {
+                "not_in_scan" => "badge-danger",
+                "unknown_tag" => "badge-warning",
+                "duplicate_in_batch" => "badge-warning",
+                _ => "badge-warning"
+            };
+            var typeLabel = c.Type switch
+            {
+                "not_in_scan" => "Missing from scan",
+                "unknown_tag" => "Unknown RFID",
+                "duplicate_in_batch" => "Duplicate in batch",
+                "inactive_tag" => "Inactive tag",
+                "unassigned_tag" => "Unassigned tag",
+                _ => c.Type
+            };
+            <tr>
+                <td><span class="badge @badgeClass">@typeLabel</span></td>
+                <td>@(string.IsNullOrEmpty(c.RfidCode) ? "—" : c.RfidCode)</td>
+                <td>@(c.AssetTag ?? (c.AssetId.HasValue ? $"#{c.AssetId}" : "—"))</td>
+                <td>@c.Message</td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr><td colspan="4" class="text-muted">No discrepancies found — scanned tags match the asset register.</td></tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<div style="margin-top:1rem;">
+    <a asp-action="Period" asp-route-id="@period?.Id" class="btn btn-outline">Back to scan list</a>
+    <a asp-action="Index" class="btn btn-outline">All periods</a>
+</div>

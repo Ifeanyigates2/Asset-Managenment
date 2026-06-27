@@ -182,6 +182,16 @@ public static class PortalService
             return PortalCapabilities.CanScanRfid(portal);
         }
 
+        if (path.StartsWith("/auditscan"))
+        {
+            return PortalCapabilities.CanScanRfid(portal);
+        }
+
+        if (path.StartsWith("/api/audit"))
+        {
+            return PortalCapabilities.CanScanRfid(portal);
+        }
+
         if (path.StartsWith("/transfers"))
         {
             return PortalCapabilities.CanAssignMoveAssets(portal);
