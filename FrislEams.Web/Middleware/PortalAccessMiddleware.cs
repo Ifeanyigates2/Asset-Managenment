@@ -19,7 +19,9 @@ public sealed class PortalAccessMiddleware(RequestDelegate next)
         var role = roleGuard.GetCurrentRole(context);
         var isLoggedIn = !string.IsNullOrWhiteSpace(context.Session.GetString("UserName"));
 
-        if (!isLoggedIn && !path.StartsWith("/Account/Login", StringComparison.OrdinalIgnoreCase))
+        if (!isLoggedIn
+            && !path.StartsWith("/Account/Login", StringComparison.OrdinalIgnoreCase)
+            && !path.StartsWith("/health", StringComparison.OrdinalIgnoreCase))
         {
             context.Response.Redirect($"/Account/Login?returnUrl={Uri.EscapeDataString(path)}");
             return;

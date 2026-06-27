@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 AppDbContext.RegisterClassMaps();
@@ -40,6 +41,8 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.Configure<MongoDbOptions>(builder.Configuration.GetSection(MongoDbOptions.SectionName));
+var mongoOptionsAtStartup = builder.Configuration.GetSection(MongoDbOptions.SectionName).Get<MongoDbOptions>();
+MongoStartupDiagnostics.LogConfiguration(mongoOptionsAtStartup);
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
     var options = sp.GetRequiredService<IOptions<MongoDbOptions>>().Value;
@@ -93,6 +96,13 @@ Console.WriteLine("FRISL EAMS startup: initializing MongoDB and seed data...");
 try
 {
     using var scope = app.Services.CreateScope();
+    var mongoOptions = scope.ServiceProvider.GetRequiredService<IOptions<MongoDbOptions>>().Value;
+    var mongoClient = scope.ServiceProvider.GetRequiredService<IMongoClient>();
+
+    await mongoClient.GetDatabase(mongoOptions.DatabaseName).RunCommandAsync<BsonDocument>(
+        new BsonDocument("ping", 1));
+    Console.WriteLine("FRISL EAMS startup: MongoDB ping successful.");
+
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await SeedData.InitializeAsync(db);
     Console.WriteLine("FRISL EAMS startup: database ready.");

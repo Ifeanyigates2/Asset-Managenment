@@ -2,6 +2,7 @@ using FrislEams.Web.Data;
 using FrislEams.Web.Models;
 using FrislEams.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver;
 
 namespace FrislEams.Web.Controllers;
 
@@ -91,9 +92,7 @@ public class AccountController(AppDbContext db) : Controller
             return null;
         }
 
-        var user = await db.UserAccounts.AsQueryable()
-            .FirstOrDefaultAsync(u => u.Username.ToLower() == normalizedUsername);
-
+        var user = await UserAccountRepository.FindByUsernameAsync(db.UserAccounts.Collection, normalizedUsername);
         if (user is null || !user.IsActive || user.Password != password)
         {
             return null;
@@ -137,7 +136,9 @@ public class AccountController(AppDbContext db) : Controller
         var username = HttpContext.Session.GetString("LoginUsername");
         if (string.IsNullOrWhiteSpace(username)) return RedirectToAction(nameof(Login));
 
-        var user = await db.UserAccounts.AsQueryable().FirstOrDefaultAsync(u => u.Username == username);
+        var user = await db.UserAccounts.Collection
+            .Find(UserAccountRepository.CaseInsensitiveUsernameFilter(username))
+            .FirstOrDefaultAsync();
         if (user is null || user.Password != vm.CurrentPassword)
         {
             ModelState.AddModelError(string.Empty, "Current password is incorrect.");
@@ -147,6 +148,7 @@ public class AccountController(AppDbContext db) : Controller
         user.Password = vm.NewPassword;
         user.MustChangePassword = false;
         user.UpdatedAt = DateTime.UtcNow;
+        db.UserAccounts.Update(user);
         await db.SaveChangesAsync();
         HttpContext.Session.SetString("MustChangePassword", "0");
         TempData["Success"] = "Password updated successfully.";

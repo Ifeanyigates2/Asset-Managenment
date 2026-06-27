@@ -77,6 +77,14 @@ public sealed class AppDbContext
     public MongoEntitySet<IntegrationEventLog> IntegrationEventLogs { get; }
     public MongoEntitySet<UserAccount> UserAccounts { get; }
 
+    public IMongoDatabase Database => database;
+
+    public Task<int> NextIdAsync(string sequenceName, CancellationToken cancellationToken = default)
+        => idGenerator.NextAsync(sequenceName, cancellationToken);
+
+    public Task<long> CountUsersAsync(CancellationToken cancellationToken = default)
+        => UserAccounts.Collection.CountDocumentsAsync(FilterDefinition<UserAccount>.Empty, cancellationToken: cancellationToken);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return SaveAllAsync(cancellationToken);

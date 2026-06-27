@@ -8,27 +8,47 @@ public static class SeedData
 {
     public static async Task InitializeAsync(AppDbContext db, CancellationToken cancellationToken = default)
     {
+        await RunSectionAsync("required user accounts", () => UserAccountRepository.EnsureRequiredUsersAsync(db, cancellationToken));
+
+        await RunSectionAsync("indexes", () => db.EnsureIndexesAsync(cancellationToken));
+        await RunSectionAsync("legacy user migration", () => MigrateLegacyUserAccountsAsync(db, cancellationToken));
+        RunSection("categories", () => SeedCategories(db));
+        RunSection("asset types", () => SeedAssetTypes(db));
+        RunSection("manufacturers", () => SeedManufacturers(db));
+        RunSection("locations", () => SeedLocations(db));
+        RunSection("departments", () => SeedDepartments(db));
+        RunSection("suppliers", () => SeedSuppliers(db));
+        RunSection("contractors", () => SeedContractors(db));
+        RunSection("staff", () => SeedStaff(db));
+        RunSection("user accounts", () => SeedUserAccounts(db));
+        RunSection("assets", () => SeedAssets(db));
+
+        var userCount = await db.CountUsersAsync(cancellationToken);
+        Console.WriteLine($"FRISL EAMS startup: {userCount} users in database.");
+    }
+
+    private static async Task RunSectionAsync(string name, Func<Task> action)
+    {
         try
         {
-            await db.EnsureIndexesAsync(cancellationToken);
+            await action();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"FRISL EAMS startup warning: index creation failed: {ex.Message}");
+            Console.WriteLine($"FRISL EAMS startup warning: {name} failed: {ex.Message}");
         }
+    }
 
-        await MigrateLegacyUserAccountsAsync(db, cancellationToken);
-        SeedCategories(db);
-        SeedAssetTypes(db);
-        SeedManufacturers(db);
-        SeedLocations(db);
-        SeedDepartments(db);
-        SeedSuppliers(db);
-        SeedContractors(db);
-        SeedStaff(db);
-        SeedUserAccounts(db);
-        EnsureRequiredUserAccounts(db);
-        SeedAssets(db);
+    private static void RunSection(string name, Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"FRISL EAMS startup warning: {name} failed: {ex.Message}");
+        }
     }
 
     public static void Initialize(AppDbContext db) => InitializeAsync(db).GetAwaiter().GetResult();
@@ -194,49 +214,6 @@ public static class SeedData
             new UserAccount { Username = "viewer", Password = "viewer123", Role = "Viewer", DisplayName = "Read-Only Viewer" }
         ]);
         db.SaveChanges();
-    }
-
-    private static void EnsureRequiredUserAccounts(AppDbContext db)
-    {
-        EnsureUserAccount(db, "Washington", "Washington1", "Backoffice", "Washington");
-        EnsureUserAccount(db, "Staff", "Staff1", "Staff", "Staff");
-        EnsureUserAccount(db, "Auditor", "auditor1", "Auditor", "Auditor");
-        EnsureUserAccount(db, "Admin", "Admin1", "Admin", "Admin");
-        RemoveLegacyUserAccount(db, "Backoffice");
-        db.SaveChanges();
-    }
-
-    private static void RemoveLegacyUserAccount(AppDbContext db, string username)
-    {
-        var existing = db.Users.AsQueryable()
-            .FirstOrDefault(u => u.Username.ToLower() == username.ToLower());
-        if (existing is null) return;
-        db.Users.Remove(existing);
-    }
-
-    private static void EnsureUserAccount(AppDbContext db, string username, string password, string role, string displayName)
-    {
-        var existing = db.Users.AsQueryable()
-            .FirstOrDefault(u => u.Username.ToLower() == username.ToLower());
-
-        if (existing is null)
-        {
-            db.Users.Add(new UserAccount
-            {
-                Username = username,
-                Password = password,
-                Role = role,
-                DisplayName = displayName
-            });
-            return;
-        }
-
-        existing.Password = password;
-        existing.Role = role;
-        existing.DisplayName = displayName;
-        existing.IsActive = true;
-        existing.UpdatedAt = DateTime.UtcNow;
-        db.Users.Update(existing);
     }
 
     private static void SeedAssets(AppDbContext db)
