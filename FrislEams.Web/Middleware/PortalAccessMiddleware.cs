@@ -7,10 +7,7 @@ public sealed class PortalAccessMiddleware(RequestDelegate next)
     public async Task InvokeAsync(HttpContext context, RoleGuard roleGuard)
     {
         var path = context.Request.Path.Value ?? "/";
-        if (path.StartsWith("/css", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/js", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/_", StringComparison.OrdinalIgnoreCase)
-            || path.Contains('.', StringComparison.Ordinal))
+        if (IsStaticAssetPath(path))
         {
             await next(context);
             return;
@@ -19,11 +16,12 @@ public sealed class PortalAccessMiddleware(RequestDelegate next)
         var role = roleGuard.GetCurrentRole(context);
         var isLoggedIn = !string.IsNullOrWhiteSpace(context.Session.GetString("UserName"));
 
-        if (!isLoggedIn
-            && !path.StartsWith("/Account/Login", StringComparison.OrdinalIgnoreCase)
-            && !path.StartsWith("/health", StringComparison.OrdinalIgnoreCase))
+        if (!isLoggedIn && !IsAnonymousPath(path))
         {
-            context.Response.Redirect($"/Account/Login?returnUrl={Uri.EscapeDataString(path)}");
+            var returnUrl = string.Equals(path, "/Home/Error", StringComparison.OrdinalIgnoreCase)
+                ? "/"
+                : path;
+            context.Response.Redirect($"/Account/Login?returnUrl={Uri.EscapeDataString(returnUrl)}");
             return;
         }
 
@@ -43,4 +41,15 @@ public sealed class PortalAccessMiddleware(RequestDelegate next)
 
         await next(context);
     }
+
+    private static bool IsStaticAssetPath(string path)
+        => path.StartsWith("/css", StringComparison.OrdinalIgnoreCase)
+           || path.StartsWith("/js", StringComparison.OrdinalIgnoreCase)
+           || path.StartsWith("/_", StringComparison.OrdinalIgnoreCase)
+           || path.Contains('.', StringComparison.Ordinal);
+
+    private static bool IsAnonymousPath(string path)
+        => path.StartsWith("/Account/Login", StringComparison.OrdinalIgnoreCase)
+           || path.StartsWith("/health", StringComparison.OrdinalIgnoreCase)
+           || path.StartsWith("/Home/Error", StringComparison.OrdinalIgnoreCase);
 }
