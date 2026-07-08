@@ -14,15 +14,15 @@
     font-weight: 700;
     color: #e65100;
     white-space: nowrap;
-    padding-right: 0.75rem;
-    margin-right: 0.15rem;
-    border-right: 2px solid #ffe0b2;
+    padding-left: 0.75rem;
+    margin-left: 0.15rem;
+    border-left: 2px solid #ffe0b2;
 }
 
 @media (max-width: 768px) {
     .portal-theme-staff .portal-header-user {
         font-size: 0.85rem;
-        max-width: 7rem;
+        max-width: 8rem;
         overflow: hidden;
         text-overflow: ellipsis;
     }
