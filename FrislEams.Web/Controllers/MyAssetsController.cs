@@ -40,11 +40,15 @@ public class MyAssetsController(AppDbContext db, FeatureHubService hub) : Contro
         }
 
         var assignment = await db.AssetAssignments.AsQueryable()
-            .Include(a => a.Asset)
             .FirstOrDefaultAsync(a =>
                 a.AssetId == assetId
                 && a.AssignedToStaffId == staff.Id
                 && a.Status == "Pending");
+
+        if (assignment is not null)
+        {
+            MongoHydrator.HydrateAssignments([assignment], db);
+        }
 
         if (assignment?.Asset is null || assignment.Asset.CurrentStatus != AssetStatus.AssignedPendingConfirmation)
         {

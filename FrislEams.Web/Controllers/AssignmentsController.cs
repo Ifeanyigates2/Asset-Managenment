@@ -90,7 +90,13 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
             return RedirectToAction(nameof(Index));
         }
 
-        var assignment = await db.AssetAssignments.AsQueryable().Include(a => a.Asset).FirstOrDefaultAsync(a => a.Id == vm.AssignmentId);
+        var assignment = await db.AssetAssignments.AsQueryable()
+            .FirstOrDefaultAsync(a => a.Id == vm.AssignmentId);
+        if (assignment is not null)
+        {
+            MongoHydrator.HydrateAssignments([assignment], db);
+        }
+
         if (assignment?.Asset is null)
         {
             return NotFound();
@@ -173,8 +179,12 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
         }
 
         var assignment = await db.AssetAssignments.AsQueryable()
-            .Include(a => a.Asset)
             .FirstOrDefaultAsync(a => a.Id == vm.AssignmentId);
+
+        if (assignment is not null)
+        {
+            MongoHydrator.HydrateAssignments([assignment], db);
+        }
 
         if (assignment?.Asset is null)
         {
