@@ -11,6 +11,10 @@
         _ => "_Sidebars/BackofficeSidebar"
     };
     var isDashboard = (Context.Request.Path.Value ?? "").Contains("/Portal/", StringComparison.OrdinalIgnoreCase);
+    // LoginUsername is the username the user authenticated with.
+    // (UserName is stored as a display name; staff portal header wants the login username.)
+    var sessionLoginUsername = Context.Session.GetString("LoginUsername");
+    var isStaffPortal = string.Equals(sessionPortal, "Staff", StringComparison.OrdinalIgnoreCase);
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -35,9 +39,17 @@
                         <span class="portal-menu-bar"></span>
                         <span class="portal-menu-bar"></span>
                     </button>
+                    @if (isStaffPortal && !string.IsNullOrWhiteSpace(sessionLoginUsername))
+                    {
+                        <span class="portal-header-user">@sessionLoginUsername</span>
+                    }
                     <img src="~/firstregistrars-logo.png" alt="First Registrars" class="portal-header-logo" />
                     <div class="portal-header-titles">
-                        <span class="portal-header-name">@sessionPortal Portal</span>
+                        <span class="portal-header-name">
+                            @((isStaffPortal && !string.IsNullOrWhiteSpace(sessionLoginUsername))
+                                ? sessionLoginUsername
+                                : $"{sessionPortal} Portal")
+                        </span>
                         <span class="portal-header-tag">RFID-enabled · Role-based access · Secure</span>
                     </div>
                 </div>
