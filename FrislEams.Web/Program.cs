@@ -15,7 +15,8 @@ AppDbContext.RegisterClassMaps();
 var builder = WebApplication.CreateBuilder(args);
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}", $"http://[::]:{port}");
+// Single IPv4 bind only — dual 0.0.0.0 + [::] UseUrls causes "address already in use" on Render.
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
