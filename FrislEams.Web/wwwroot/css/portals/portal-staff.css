@@ -14,9 +14,9 @@
     font-weight: 700;
     color: #e65100;
     white-space: nowrap;
-    padding-left: 0.75rem;
-    margin-left: 0.15rem;
-    border-left: 2px solid #ffe0b2;
+    padding-right: 0.75rem;
+    margin-right: 0.15rem;
+    border-right: 2px solid #ffe0b2;
 }
 
 @media (max-width: 768px) {
@@ -25,6 +25,11 @@
         max-width: 8rem;
         overflow: hidden;
         text-overflow: ellipsis;
+        order: -1;
+    }
+
+    .portal-theme-staff .portal-header-right {
+        flex-wrap: wrap;
     }
 }
 

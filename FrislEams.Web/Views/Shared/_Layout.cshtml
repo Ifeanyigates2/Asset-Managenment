@@ -14,11 +14,20 @@
     var sessionDisplayName = Context.Session.GetString("UserName");
     var sessionLoginUsername = Context.Session.GetString("LoginUsername");
     var isStaffPortal = string.Equals(sessionPortal, "Staff", StringComparison.OrdinalIgnoreCase);
-    var staffHeaderName = !string.IsNullOrWhiteSpace(sessionDisplayName)
-        ? sessionDisplayName
-        : string.IsNullOrWhiteSpace(sessionLoginUsername)
-            ? null
-            : char.ToUpperInvariant(sessionLoginUsername[0]) + sessionLoginUsername[1..].ToLowerInvariant();
+    string? staffHeaderName = null;
+    if (isStaffPortal)
+    {
+        var rawName = !string.IsNullOrWhiteSpace(sessionDisplayName)
+            ? sessionDisplayName
+            : sessionLoginUsername;
+        if (!string.IsNullOrWhiteSpace(rawName))
+        {
+            staffHeaderName = rawName.Contains(' ')
+                ? rawName
+                : char.ToUpperInvariant(rawName[0]) + rawName[1..].ToLowerInvariant();
+        }
+    }
+    var portalHeaderTitle = isStaffPortal ? "Staff Portal" : $"{sessionPortal} Portal";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -45,16 +54,16 @@
                     </button>
                     <img src="~/firstregistrars-logo.png" alt="First Registrars" class="portal-header-logo" />
                     <div class="portal-header-titles">
-                        <span class="portal-header-name">@($"{sessionPortal} Portal")</span>
+                        <span class="portal-header-name">@portalHeaderTitle</span>
                         <span class="portal-header-tag">RFID-enabled · Role-based access · Secure</span>
                     </div>
                 </div>
                 <div class="portal-header-right">
-                    <span class="portal-header-meta">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</span>
                     @if (isStaffPortal && !string.IsNullOrWhiteSpace(staffHeaderName))
                     {
-                        <span class="portal-header-user">@staffHeaderName</span>
+                        <span class="portal-header-user" title="Signed in as @staffHeaderName">@staffHeaderName</span>
                     }
+                    <span class="portal-header-meta">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</span>
                     <a href="/Account/Logout" class="portal-logout-btn portal-logout-btn-header">Logout</a>
                 </div>
             </header>
