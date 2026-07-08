@@ -388,6 +388,23 @@
     border: 1px solid #e8edf5;
     border-radius: 8px;
     align-items: center;
+    cursor: pointer;
+    width: 100%;
+    min-height: 74px;
+    justify-content: space-between;
+    text-decoration: none;
+    color: inherit;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.staff-asset-card:focus-visible {
+    outline: 2px solid #f57c00;
+    outline-offset: 2px;
+}
+
+.staff-asset-card:hover {
+    border-color: #ffcc80;
 }
 
 .staff-asset-card .asset-icon {
@@ -401,8 +418,34 @@
     font-size: 1.25rem;
 }
 
+.staff-asset-card .asset-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
 .staff-asset-card .asset-name { font-weight: 600; font-size: 0.9rem; }
-.staff-asset-card .asset-meta { font-size: 0.76rem; color: #6c757d; }
+.staff-asset-card .asset-meta {
+    font-size: 0.76rem;
+    color: #6c757d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.staff-asset-accept {
+    flex: 0 0 auto;
+    background: #f57c00;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.82rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    margin-left: 0.5rem;
+    white-space: nowrap;
+}
 
 /* Quick action buttons (staff) */
 .staff-quick-actions {
@@ -646,6 +689,9 @@
     .staff-quick-actions { grid-template-columns: 1fr; }
 
     .staff-action-btn { min-height: 44px; }
+
+    .staff-asset-card { min-height: 70px; padding: 0.95rem 0.85rem; }
+    .staff-asset-accept { font-size: 0.8rem; padding: 0.35rem 0.55rem; }
 
     .portal-nav-item {
         min-height: 44px;

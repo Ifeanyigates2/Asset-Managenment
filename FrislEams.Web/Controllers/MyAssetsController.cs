@@ -1,9 +1,12 @@
+using FrislEams.Web.Data;
+using FrislEams.Web.Domain;
+using FrislEams.Web.Models;
 using FrislEams.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FrislEams.Web.Controllers;
 
-public class MyAssetsController(FeatureHubService hub) : Controller
+public class MyAssetsController(AppDbContext db, FeatureHubService hub) : Controller
 {
     [HttpGet("/MyAssets")]
     public async Task<IActionResult> Index()
@@ -12,5 +15,53 @@ public class MyAssetsController(FeatureHubService hub) : Controller
         var username = HttpContext.Session.GetString("LoginUsername");
         var displayName = HttpContext.Session.GetString("UserName");
         return View(await hub.GetStaffAssetsAsync(username, displayName));
+    }
+
+    [HttpGet("/MyAssets/ConfirmReceipt")]
+    public async Task<IActionResult> ConfirmReceipt(int assetId)
+    {
+        ViewData["Title"] = "Confirm Asset Receipt";
+
+        // Receipt confirmation is only allowed from the Staff portal.
+        var role = HttpContext.Session.GetString("UserRole");
+        var portal = PortalService.GetPortalForRole(role);
+        if (!string.Equals(portal, PortalService.StaffPortal, StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
+        var username = HttpContext.Session.GetString("LoginUsername");
+        var displayName = HttpContext.Session.GetString("UserName");
+
+        var staff = await db.Staff.AsQueryable().FirstOrDefaultAsync(s =>
+            s.FullName.Equals(displayName ?? string.Empty, StringComparison.OrdinalIgnoreCase)
+            || s.Email.StartsWith(username ?? string.Empty, StringComparison.OrdinalIgnoreCase));
+
+        if (staff is null)
+        {
+            return Forbid();
+        }
+
+        var assignment = await db.AssetAssignments.AsQueryable()
+            .Include(a => a.Asset)
+            .FirstOrDefaultAsync(a =>
+                a.AssetId == assetId
+                && a.AssignedToStaffId == staff.Id
+                && a.Status == "Pending");
+
+        if (assignment?.Asset is null || assignment.Asset.CurrentStatus != AssetStatus.AssignedPendingConfirmation)
+        {
+            TempData["Error"] = "This asset is not awaiting confirmation for you.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        ViewBag.Asset = assignment.Asset;
+
+        return View(new AssignmentConfirmVm
+        {
+            AssignmentId = assignment.Id,
+            ConfirmedByStaffId = staff.Id,
+            ConfirmedCondition = assignment.Asset.CurrentCondition
+        });
     }
 }

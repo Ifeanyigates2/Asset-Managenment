@@ -1,0 +1,59 @@
+@model FrislEams.Web.Models.AssignmentConfirmVm
+@{
+    ViewData["Title"] = "Confirm Asset Receipt";
+    var asset = ViewBag.Asset as FrislEams.Web.Models.Asset;
+    var returnUrl = "/Portal/Staff";
+}
+
+<div class="page-header">
+    <div class="page-title">
+        <h1>Receive Asset</h1>
+        <p class="page-subtitle">
+            Confirm receipt for <strong>@asset?.AssetName</strong>
+            <span class="badge badge-warning" style="font-size:0.72rem;">@asset?.TagCode</span>
+        </p>
+    </div>
+    <a asp-controller="MyAssets" asp-action="Index" class="btn btn-outline">← Back to My Assets</a>
+</div>
+
+<div class="info-card" style="border-left:4px solid #e8a00e;">
+    <form asp-controller="Assignments" asp-action="Confirm" method="post">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" name="AssignmentId" value="@Model.AssignmentId" />
+        <input type="hidden" name="ConfirmedByStaffId" value="@Model.ConfirmedByStaffId" />
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+        <div style="margin-bottom:1rem;">
+            <div style="font-weight:600;color:#856404;margin-bottom:0.35rem;">Two-leg confirmation</div>
+            <div style="font-size:0.875rem;color:#6c757d;">
+                Select the physical condition you received. RFID scan is optional (but must match this asset if provided).
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0.9rem;">
+            <label class="form-label">Received Condition</label>
+            <select name="ConfirmedCondition" class="form-control" required>
+                <option value="Good" selected="@(Model.ConfirmedCondition == "Good")">Good</option>
+                <option value="Fair" selected="@(Model.ConfirmedCondition == "Fair")">Fair</option>
+                <option value="Poor" selected="@(Model.ConfirmedCondition == "Poor")">Poor</option>
+            </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label class="form-label">Optional RFID Scan</label>
+            <input
+                type="text"
+                name="ScannedRfidCode"
+                class="form-control"
+                placeholder="Scan to verify (optional)"
+                autocomplete="off"
+            />
+        </div>
+
+        <div class="flex-gap">
+            <button type="submit" class="btn btn-primary">Confirm receipt</button>
+        </div>
+    </form>
+</div>
+

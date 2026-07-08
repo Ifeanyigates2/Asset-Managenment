@@ -9,6 +9,25 @@
 
 .portal-theme-staff .portal-header-name { color: #e65100; }
 
+.portal-theme-staff .portal-header-user {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e65100;
+    white-space: nowrap;
+    padding-right: 0.75rem;
+    margin-right: 0.15rem;
+    border-right: 2px solid #ffe0b2;
+}
+
+@media (max-width: 768px) {
+    .portal-theme-staff .portal-header-user {
+        font-size: 0.85rem;
+        max-width: 7rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
 .portal-theme-staff .portal-stat-card {
     border-left-color: #f57c00;
 }

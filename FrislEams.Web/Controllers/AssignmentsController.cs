@@ -12,10 +12,11 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
     public async Task<IActionResult> Index()
     {
         var assignments = await db.AssetAssignments
-            .Include(a => a.Asset)
-            .Include(a => a.AssignedToStaff)
+            .AsQueryable()
             .OrderByDescending(a => a.AssignedDate)
             .ToListAsync();
+        MongoHydrator.HydrateAssignments(assignments, db);
+        ViewBag.Staff = await GetActiveStaffAsync();
         return View(assignments);
     }
 
@@ -23,7 +24,7 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
     public async Task<IActionResult> Create(int? assetId)
     {
         ViewBag.Assets = await db.Assets.AsQueryable().Where(a => a.CurrentStatus == AssetStatus.RegisteredUnassigned).ToListAsync();
-        ViewBag.Staff = await db.Staff.ToListAsync();
+        ViewBag.Staff = await GetActiveStaffAsync();
         ViewBag.Departments = await db.Departments.ToListAsync();
         ViewBag.Locations = await db.Locations.ToListAsync();
 
@@ -75,12 +76,49 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Confirm(AssignmentConfirmVm vm)
+    public async Task<IActionResult> Confirm(AssignmentConfirmVm vm, string? returnUrl)
     {
+        IActionResult RedirectBack()
+        {
+            if (!string.IsNullOrWhiteSpace(returnUrl) && returnUrl.StartsWith("/", StringComparison.Ordinal))
+            {
+                return Redirect(returnUrl);
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
         var assignment = await db.AssetAssignments.AsQueryable().Include(a => a.Asset).FirstOrDefaultAsync(a => a.Id == vm.AssignmentId);
         if (assignment?.Asset is null)
         {
             return NotFound();
+        }
+
+        // Enforce “confirm only your own pending assignments” for staff portal users.
+        var role = HttpContext.Session.GetString("UserRole");
+        var portal = PortalService.GetPortalForRole(role);
+        if (!string.Equals(portal, PortalService.StaffPortal, StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
+        if (string.Equals(portal, PortalService.StaffPortal, StringComparison.OrdinalIgnoreCase))
+        {
+            var currentStaff = await GetCurrentStaffAsync();
+
+            if (currentStaff is null
+                || assignment.AssignedToStaffId != currentStaff.Id
+                || vm.ConfirmedByStaffId != currentStaff.Id)
+            {
+                TempData["Error"] = "You can only confirm receipt for assets assigned to you.";
+                return RedirectBack();
+            }
+        }
+
+        if (!string.Equals(assignment.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["Error"] = "This assignment is not awaiting confirmation.";
+            return RedirectBack();
         }
 
         if (!string.IsNullOrWhiteSpace(vm.ScannedRfidCode))
@@ -89,7 +127,7 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
             if (tag is null || !string.Equals(tag.RfidCode, vm.ScannedRfidCode.Trim(), StringComparison.OrdinalIgnoreCase))
             {
                 TempData["Error"] = "RFID scan does not match this asset. Verify the tag before confirming.";
-                return RedirectToAction(nameof(Index));
+                return RedirectBack();
             }
         }
 
@@ -109,11 +147,32 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
         if (!ok)
         {
             TempData["Error"] = "Confirmation failed due to invalid state transition.";
-            return RedirectToAction(nameof(Index));
+            return RedirectBack();
         }
 
         await db.SaveChangesAsync();
         TempData["Success"] = "Assignment confirmed.";
-        return RedirectToAction(nameof(Index));
+        return RedirectBack();
+    }
+
+    private async Task<List<Staff>> GetActiveStaffAsync()
+    {
+        var staff = await db.Staff
+            .AsQueryable()
+            .Where(s => s.IsActive)
+            .OrderBy(s => s.FullName)
+            .ToListAsync();
+        MongoHydrator.HydrateStaff(staff, db);
+        return staff;
+    }
+
+    private async Task<Staff?> GetCurrentStaffAsync()
+    {
+        var username = HttpContext.Session.GetString("LoginUsername");
+        var displayName = HttpContext.Session.GetString("UserName");
+
+        return await db.Staff.AsQueryable().FirstOrDefaultAsync(s =>
+            s.FullName.Equals(displayName ?? string.Empty, StringComparison.OrdinalIgnoreCase)
+            || s.Email.StartsWith(username ?? string.Empty, StringComparison.OrdinalIgnoreCase));
     }
 }

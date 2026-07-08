@@ -20,6 +20,7 @@ public static class SeedData
         RunSection("suppliers", () => SeedSuppliers(db));
         RunSection("contractors", () => SeedContractors(db));
         RunSection("staff", () => SeedStaff(db));
+        await RunSectionAsync("required staff", () => StaffRepository.EnsureRequiredStaffAsync(db, cancellationToken));
         RunSection("user accounts", () => SeedUserAccounts(db));
         RunSection("assets", () => SeedAssets(db));
 
@@ -191,7 +192,9 @@ public static class SeedData
             new Staff { StaffId = "FR-005", FullName = "Emeka Chukwu", Email = "emeka.c@firstregistrars.ng", PhoneNumber = "0815-555-5555", Role = "Staff", DepartmentId = depts["OPS"] },
             new Staff { StaffId = "FR-006", FullName = "Fatima Sule", Email = "fatima.s@firstregistrars.ng", PhoneNumber = "0816-666-6666", Role = "DepartmentHead", DepartmentId = depts["OPS"] },
             new Staff { StaffId = "FR-007", FullName = "Gbenga Oluwole", Email = "gbenga.o@firstregistrars.ng", PhoneNumber = "0817-777-7777", Role = "Staff", DepartmentId = depts["IT"] },
-            new Staff { StaffId = "FR-008", FullName = "Hauwa Abdullahi", Email = "hauwa.a@firstregistrars.ng", PhoneNumber = "0818-888-8888", Role = "Staff", DepartmentId = depts["LEG"] }
+            new Staff { StaffId = "FR-008", FullName = "Hauwa Abdullahi", Email = "hauwa.a@firstregistrars.ng", PhoneNumber = "0818-888-8888", Role = "Staff", DepartmentId = depts["LEG"] },
+            new Staff { StaffId = "FR-009", FullName = "Emmanuel", Email = "emmanuel@firstregistrars.ng", PhoneNumber = "0819-999-9999", Role = "Staff", DepartmentId = depts["IT"] },
+            new Staff { StaffId = "FR-010", FullName = "Abayomi", Email = "abayomi@firstregistrars.ng", PhoneNumber = "0820-000-0000", Role = "Staff", DepartmentId = depts["IT"] }
         ]);
         db.SaveChanges();
     }
@@ -210,6 +213,8 @@ public static class SeedData
             new UserAccount { Username = "Staff2", Password = "January2021###", Role = "Staff", DisplayName = "Staff 2" },
             new UserAccount { Username = "Staff3", Password = "January2021###", Role = "Staff", DisplayName = "Staff 3" },
             new UserAccount { Username = "Staff4", Password = "January2021###", Role = "Staff", DisplayName = "Staff 4" },
+            new UserAccount { Username = "emmanuel", Password = "Washington", Role = "Staff", DisplayName = "Emmanuel" },
+            new UserAccount { Username = "abayomi", Password = "Washington", Role = "Staff", DisplayName = "Abayomi" },
             new UserAccount { Username = "staff", Password = "staff123", Role = "Staff", DisplayName = "Staff Member" },
             new UserAccount { Username = "viewer", Password = "viewer123", Role = "Viewer", DisplayName = "Read-Only Viewer" }
         ]);

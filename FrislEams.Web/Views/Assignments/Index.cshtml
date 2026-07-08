@@ -56,7 +56,7 @@
                                     <option value="">Staff confirming...</option>
                                     @foreach (var s in staff)
                                     {
-                                        <option value="@s.Id">@s.FullName</option>
+                                        <option value="@s.Id">@s.StaffId — @s.FullName — @(s.Department?.Name ?? "No department")</option>
                                     }
                                 </select>
                                 <select name="ConfirmedCondition" class="form-control form-control-sm">

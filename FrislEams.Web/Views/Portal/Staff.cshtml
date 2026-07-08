@@ -1,3 +1,4 @@
+@using FrislEams.Web.Domain
 @{
     ViewData["Title"] = "Portal Overview";
     var metrics = ViewBag.Metrics as Dictionary<string, int> ?? new();
@@ -34,13 +35,24 @@
             }
             @foreach (var asset in myAssets.Take(6))
             {
-                <div class="staff-asset-card">
+                var isPendingConfirmation = asset.CurrentStatus == AssetStatus.AssignedPendingConfirmation;
+                var href = isPendingConfirmation
+                    ? Url.Action("ConfirmReceipt", "MyAssets", new { assetId = asset.Id })
+                    : Url.Action("Detail", "Assets", new { id = asset.Id });
+
+                var ariaLabel = $"Asset card: {asset.AssetName}{(isPendingConfirmation ? " (Accept receipt)" : "")}";
+
+                <a class="staff-asset-card" href="@href" aria-label="@ariaLabel">
                     <div class="asset-icon">@AssetIcon(asset.AssetName)</div>
-                    <div>
+                    <div class="asset-text">
                         <div class="asset-name">@asset.AssetName</div>
                         <div class="asset-meta">@asset.TagCode · Assigned @asset.UpdatedAt.ToString("dd MMM yyyy")</div>
                     </div>
-                </div>
+                    @if (isPendingConfirmation)
+                    {
+                        <span class="staff-asset-accept">Accept</span>
+                    }
+                </a>
             }
         </div>
         <a asp-controller="MyAssets" asp-action="Index" class="btn btn-sm btn-outline" style="margin-top:0.75rem;">View all my assets</a>

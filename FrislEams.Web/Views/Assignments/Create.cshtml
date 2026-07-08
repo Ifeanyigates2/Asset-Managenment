@@ -54,9 +54,9 @@
                 <label asp-for="AssignedToStaffId" class="form-label">Assign to Staff Member</label>
                 <select asp-for="AssignedToStaffId" class="form-control">
                     <option value="">-- Optional (department pool) --</option>
-                    @foreach (var s in staff.Where(x => x.IsActive))
+                    @foreach (var s in staff)
                     {
-                        <option value="@s.Id">@s.FullName — @s.Department?.Name</option>
+                        <option value="@s.Id">@s.StaffId — @s.FullName — @(s.Department?.Name ?? "—")</option>
                     }
                 </select>
             </div>

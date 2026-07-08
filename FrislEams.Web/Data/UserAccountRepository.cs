@@ -47,6 +47,8 @@ public static class UserAccountRepository
         ("Washington", "Washington1", "Backoffice", "Washington"),
         ("Staff", "Staff1", "Staff", "Staff"),
         ("Auditor", "auditor1", "Auditor", "Auditor"),
+        ("emmanuel", "Washington", "Staff", "Emmanuel"),
+        ("abayomi", "Washington", "Staff", "Abayomi"),
     ];
 
     private static async Task EnsureUserAsync(
