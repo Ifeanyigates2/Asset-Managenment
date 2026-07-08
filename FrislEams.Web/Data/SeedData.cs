@@ -21,6 +21,7 @@ public static class SeedData
         RunSection("contractors", () => SeedContractors(db));
         RunSection("staff", () => SeedStaff(db));
         await RunSectionAsync("required staff", () => StaffRepository.EnsureRequiredStaffAsync(db, cancellationToken));
+        await RunSectionAsync("demo pending receipt", () => AssignmentRepository.EnsureDemoPendingReceiptAsync(db, cancellationToken));
         RunSection("user accounts", () => SeedUserAccounts(db));
         RunSection("assets", () => SeedAssets(db));
 
@@ -307,27 +308,35 @@ public static class SeedData
                 Notes = "Initial assignment on registration"
             });
         }
-        // Pending assignment
-        var pendingAsset = assets.FirstOrDefault(a => a.TagCode.Contains("CMP-OPS-001"));
-        var opsStaff = db.Staff.AsQueryable().First(s => s.StaffId == "FR-005");
-        var opsDept = db.Departments.AsQueryable().First(d => d.Code == "OPS");
-        if (pendingAsset != null)
+        // Pending assignment — Emmanuel (IT) receives Ubiquiti AP, awaiting receipt confirmation
+        var pendingAsset = assets.FirstOrDefault(a => a.TagCode == "FRISL-2024-NET-IT-001");
+        var emmanuelStaff = db.Staff.AsQueryable().FirstOrDefault(s => s.StaffId == "FR-009")
+            ?? db.Staff.AsQueryable().FirstOrDefault(s => s.FullName == "Emmanuel");
+        var itDept = db.Departments.AsQueryable().First(d => d.Code == "IT");
+        if (pendingAsset != null && emmanuelStaff != null)
         {
             db.AssetAssignments.Add(new AssetAssignment
             {
                 AssetId = pendingAsset.Id,
-                AssignedToStaffId = opsStaff.Id,
-                AssignedToDepartmentId = opsDept.Id,
+                AssignedToStaffId = emmanuelStaff.Id,
+                AssignedToDepartmentId = itDept.Id,
                 AssignedLocationId = hqLoc.Id,
                 AssignedCondition = "Good",
                 Status = "Pending",
                 AssignedBy = "Admin",
-                AssignedDate = DateTime.UtcNow.AddDays(-1),
-                Notes = "Issued for field operations"
+                AssignedDate = DateTime.UtcNow,
+                Notes = "Issued to IT — awaiting receipt confirmation"
             });
             pendingAsset.CurrentStatus = AssetStatus.AssignedPendingConfirmation;
+            pendingAsset.CurrentCustodianId = emmanuelStaff.Id;
+            pendingAsset.CurrentDepartmentId = itDept.Id;
+            pendingAsset.CurrentLocationId = hqLoc.Id;
+            pendingAsset.UpdatedAt = DateTime.UtcNow;
         }
         db.SaveChanges();
+
+        var opsStaff = db.Staff.AsQueryable().First(s => s.StaffId == "FR-005");
+        var opsDept = db.Departments.AsQueryable().First(d => d.Code == "OPS");
 
         // Repair request
         var printer = assets.First(a => a.TagCode.Contains("PRT-OPS"));
@@ -376,7 +385,6 @@ public static class SeedData
         ]);
 
         // Audit session
-        var itDept = db.Departments.AsQueryable().First(d => d.Code == "IT");
         db.AuditSessions.Add(new AuditSession { AuditType = "Departmental", DepartmentId = itDept.Id, InitiatedBy = "Damilola Afolabi", Status = "Open", Notes = "Annual IT asset verification", StartDate = DateTime.UtcNow.AddDays(-2) });
 
         // Notifications

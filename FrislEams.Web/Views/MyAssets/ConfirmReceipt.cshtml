@@ -1,59 +1,108 @@
+@using FrislEams.Web.Domain
 @model FrislEams.Web.Models.AssignmentConfirmVm
 @{
-    ViewData["Title"] = "Confirm Asset Receipt";
+    ViewData["Title"] = "Receive Asset";
     var asset = ViewBag.Asset as FrislEams.Web.Models.Asset;
+    var assignment = ViewBag.Assignment as FrislEams.Web.Models.AssetAssignment;
     var returnUrl = "/Portal/Staff";
+    var rejectVm = new FrislEams.Web.Models.AssignmentRejectVm
+    {
+        AssignmentId = Model.AssignmentId,
+        RejectedByStaffId = Model.ConfirmedByStaffId
+    };
 }
 
 <div class="page-header">
     <div class="page-title">
         <h1>Receive Asset</h1>
         <p class="page-subtitle">
-            Confirm receipt for <strong>@asset?.AssetName</strong>
-            <span class="badge badge-warning" style="font-size:0.72rem;">@asset?.TagCode</span>
+            Review and accept or reject this assignment
         </p>
     </div>
-    <a asp-controller="MyAssets" asp-action="Index" class="btn btn-outline">← Back to My Assets</a>
+    <a href="@returnUrl" class="btn btn-outline">← Back to Dashboard</a>
 </div>
 
-<div class="info-card" style="border-left:4px solid #e8a00e;">
-    <form asp-controller="Assignments" asp-action="Confirm" method="post">
-        @Html.AntiForgeryToken()
+<div class="receipt-asset-summary">
+    <div class="receipt-asset-icon">📦</div>
+    <div>
+        <div class="receipt-asset-name">@asset?.AssetName</div>
+        <div class="receipt-asset-meta">
+            <span class="badge badge-warning">@asset?.TagCode</span>
+            <span>Assigned @assignment?.AssignedDate.ToString("dd MMM yyyy")</span>
+        </div>
+        <div class="receipt-asset-detail">
+            Condition at issue: <strong>@assignment?.AssignedCondition</strong>
+            @if (!string.IsNullOrWhiteSpace(assignment?.Notes))
+            {
+                <span> · @assignment.Notes</span>
+            }
+        </div>
+    </div>
+</div>
 
-        <input type="hidden" name="AssignmentId" value="@Model.AssignmentId" />
-        <input type="hidden" name="ConfirmedByStaffId" value="@Model.ConfirmedByStaffId" />
-        <input type="hidden" name="returnUrl" value="@returnUrl" />
+<div class="receipt-actions-grid">
+    <div class="info-card receipt-accept-card">
+        <h3 class="receipt-card-title">✓ Accept assignment</h3>
+        <p class="receipt-card-desc">
+            Confirm you have physically received this asset. Select the condition you observed on receipt.
+        </p>
 
-        <div style="margin-bottom:1rem;">
-            <div style="font-weight:600;color:#856404;margin-bottom:0.35rem;">Two-leg confirmation</div>
-            <div style="font-size:0.875rem;color:#6c757d;">
-                Select the physical condition you received. RFID scan is optional (but must match this asset if provided).
+        <form asp-controller="Assignments" asp-action="Confirm" method="post">
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" name="AssignmentId" value="@Model.AssignmentId" />
+            <input type="hidden" name="ConfirmedByStaffId" value="@Model.ConfirmedByStaffId" />
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+            <div class="form-group" style="margin-bottom:0.9rem;">
+                <label class="form-label">Received condition</label>
+                <select name="ConfirmedCondition" class="form-control" required>
+                    <option value="Good" selected="@(Model.ConfirmedCondition == "Good")">Good</option>
+                    <option value="Fair" selected="@(Model.ConfirmedCondition == "Fair")">Fair</option>
+                    <option value="Poor" selected="@(Model.ConfirmedCondition == "Poor")">Poor</option>
+                </select>
             </div>
-        </div>
 
-        <div class="form-group" style="margin-bottom:0.9rem;">
-            <label class="form-label">Received Condition</label>
-            <select name="ConfirmedCondition" class="form-control" required>
-                <option value="Good" selected="@(Model.ConfirmedCondition == "Good")">Good</option>
-                <option value="Fair" selected="@(Model.ConfirmedCondition == "Fair")">Fair</option>
-                <option value="Poor" selected="@(Model.ConfirmedCondition == "Poor")">Poor</option>
-            </select>
-        </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label class="form-label">Optional RFID scan</label>
+                <input
+                    type="text"
+                    name="ScannedRfidCode"
+                    class="form-control"
+                    placeholder="Scan to verify (optional)"
+                    autocomplete="off"
+                />
+            </div>
 
-        <div class="form-group" style="margin-bottom:1rem;">
-            <label class="form-label">Optional RFID Scan</label>
-            <input
-                type="text"
-                name="ScannedRfidCode"
-                class="form-control"
-                placeholder="Scan to verify (optional)"
-                autocomplete="off"
-            />
-        </div>
+            <button type="submit" class="btn btn-primary btn-block-mobile">Accept &amp; confirm receipt</button>
+        </form>
+    </div>
 
-        <div class="flex-gap">
-            <button type="submit" class="btn btn-primary">Confirm receipt</button>
-        </div>
-    </form>
+    <div class="info-card receipt-reject-card">
+        <h3 class="receipt-card-title">✕ Reject assignment</h3>
+        <p class="receipt-card-desc">
+            Decline this assignment if you did not receive the asset or cannot accept custody. The asset will return to storage.
+        </p>
+
+        <form asp-controller="Assignments" asp-action="Reject" method="post"
+              onsubmit="return confirm('Reject this assignment? The asset will be returned to storage.');">
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" name="AssignmentId" value="@rejectVm.AssignmentId" />
+            <input type="hidden" name="RejectedByStaffId" value="@rejectVm.RejectedByStaffId" />
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+            <div class="form-group" style="margin-bottom:1rem;">
+                <label class="form-label">Reason (optional)</label>
+                <textarea
+                    name="RejectionReason"
+                    class="form-control"
+                    rows="3"
+                    placeholder="e.g. Asset not received, wrong item issued…"
+                ></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-danger btn-block-mobile">Reject assignment</button>
+        </form>
+    </div>
 </div>
-

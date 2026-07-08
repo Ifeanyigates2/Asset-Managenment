@@ -5,6 +5,54 @@ namespace FrislEams.Web.Data;
 
 public static class StaffRepository
 {
+    /// <summary>
+    /// Resolves the Staff record for the logged-in portal user (e.g. username "emmanuel" → Emmanuel FR-009).
+    /// </summary>
+    public static async Task<Staff?> FindBySessionAsync(
+        AppDbContext db,
+        string? username,
+        string? displayName,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(username) && string.IsNullOrWhiteSpace(displayName))
+        {
+            return null;
+        }
+
+        var staffList = await db.Staff.AsQueryable().ToListAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(username))
+        {
+            var byEmailLocal = staffList.FirstOrDefault(s =>
+            {
+                var local = s.Email.Split('@')[0];
+                return local.Equals(username.Trim(), StringComparison.OrdinalIgnoreCase);
+            });
+            if (byEmailLocal is not null)
+            {
+                return byEmailLocal;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(displayName))
+        {
+            var byName = staffList.FirstOrDefault(s =>
+                s.FullName.Equals(displayName.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (byName is not null)
+            {
+                return byName;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(username))
+        {
+            return staffList.FirstOrDefault(s =>
+                s.Email.StartsWith(username.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        return null;
+    }
+
     public static async Task EnsureRequiredStaffAsync(
         AppDbContext db,
         CancellationToken cancellationToken = default)

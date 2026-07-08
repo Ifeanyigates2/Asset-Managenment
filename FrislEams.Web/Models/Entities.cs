@@ -214,6 +214,9 @@ public class AssetAssignment
     public string? ConfirmedCondition { get; set; }
     public int? ConfirmedByStaffId { get; set; }
     public Staff? ConfirmedByStaff { get; set; }
+    public int? RejectedByStaffId { get; set; }
+    public Staff? RejectedByStaff { get; set; }
+    public string? RejectionReason { get; set; }
     public string Notes { get; set; } = string.Empty;
     public string Status { get; set; } = "Pending";
     public string AssignedBy { get; set; } = "Admin";

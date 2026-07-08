@@ -8,6 +8,8 @@ namespace FrislEams.Web.Controllers;
 
 public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecycleService, RfidTagService rfidTagService) : Controller
 {
+    private const string StaffReturnUrl = "/Portal/Staff";
+
     [HttpGet]
     public async Task<IActionResult> Index()
     {
@@ -94,14 +96,8 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
             return NotFound();
         }
 
-        // Enforce “confirm only your own pending assignments” for staff portal users.
         var role = HttpContext.Session.GetString("UserRole");
         var portal = PortalService.GetPortalForRole(role);
-        if (!string.Equals(portal, PortalService.StaffPortal, StringComparison.OrdinalIgnoreCase))
-        {
-            return Forbid();
-        }
-
         if (string.Equals(portal, PortalService.StaffPortal, StringComparison.OrdinalIgnoreCase))
         {
             var currentStaff = await GetCurrentStaffAsync();
@@ -151,7 +147,91 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
         }
 
         await db.SaveChangesAsync();
-        TempData["Success"] = "Assignment confirmed.";
+        TempData["Success"] = $"You have accepted {assignment.Asset.AssetName} ({assignment.Asset.TagCode}).";
+        return RedirectBack();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Reject(AssignmentRejectVm vm, string? returnUrl)
+    {
+        IActionResult RedirectBack()
+        {
+            if (!string.IsNullOrWhiteSpace(returnUrl) && returnUrl.StartsWith("/", StringComparison.Ordinal))
+            {
+                return Redirect(returnUrl);
+            }
+
+            return Redirect(StaffReturnUrl);
+        }
+
+        var role = HttpContext.Session.GetString("UserRole");
+        var portal = PortalService.GetPortalForRole(role);
+        if (!string.Equals(portal, PortalService.StaffPortal, StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
+        var assignment = await db.AssetAssignments.AsQueryable()
+            .Include(a => a.Asset)
+            .FirstOrDefaultAsync(a => a.Id == vm.AssignmentId);
+
+        if (assignment?.Asset is null)
+        {
+            return NotFound();
+        }
+
+        var currentStaff = await GetCurrentStaffAsync();
+        if (currentStaff is null
+            || assignment.AssignedToStaffId != currentStaff.Id
+            || vm.RejectedByStaffId != currentStaff.Id)
+        {
+            TempData["Error"] = "You can only reject assignments addressed to you.";
+            return RedirectBack();
+        }
+
+        if (!string.Equals(assignment.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["Error"] = "This assignment is not awaiting confirmation.";
+            return RedirectBack();
+        }
+
+        var reason = string.IsNullOrWhiteSpace(vm.RejectionReason)
+            ? "Assignee declined receipt"
+            : vm.RejectionReason.Trim();
+
+        assignment.Status = "Rejected";
+        assignment.RejectedByStaffId = vm.RejectedByStaffId;
+        assignment.RejectionReason = reason;
+        assignment.ConfirmationDate = DateTime.UtcNow;
+
+        var asset = assignment.Asset;
+        asset.CurrentCustodianId = null;
+
+        var storeId = db.Locations
+            .AsQueryable()
+            .Where(l => l.Code == "STORE")
+            .Select(l => (int?)l.Id)
+            .FirstOrDefault();
+        if (storeId.HasValue)
+        {
+            asset.CurrentLocationId = storeId;
+        }
+
+        var ok = lifecycleService.ChangeStatus(
+            asset,
+            AssetStatus.RegisteredUnassigned,
+            $"Assignee rejected receipt: {reason}",
+            $"Staff:{vm.RejectedByStaffId}");
+
+        if (!ok)
+        {
+            TempData["Error"] = "Rejection failed due to invalid state transition.";
+            return RedirectBack();
+        }
+
+        await db.SaveChangesAsync();
+        TempData["Success"] = $"Assignment for {asset.AssetName} ({asset.TagCode}) was rejected.";
         return RedirectBack();
     }
 
@@ -170,9 +250,6 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
     {
         var username = HttpContext.Session.GetString("LoginUsername");
         var displayName = HttpContext.Session.GetString("UserName");
-
-        return await db.Staff.AsQueryable().FirstOrDefaultAsync(s =>
-            s.FullName.Equals(displayName ?? string.Empty, StringComparison.OrdinalIgnoreCase)
-            || s.Email.StartsWith(username ?? string.Empty, StringComparison.OrdinalIgnoreCase));
+        return await StaffRepository.FindBySessionAsync(db, username, displayName);
     }
 }

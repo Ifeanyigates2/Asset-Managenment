@@ -190,26 +190,19 @@ public class FeatureHubService(AppDbContext db)
 
     public async Task<List<Asset>> GetStaffAssetsAsync(string? username, string? displayName)
     {
-        var staff = await db.Staff.AsQueryable()
-            .FirstOrDefaultAsync(s =>
-                s.FullName.Equals(displayName ?? "", StringComparison.OrdinalIgnoreCase)
-                || s.Email.StartsWith(username ?? "", StringComparison.OrdinalIgnoreCase));
-
-        var assets = await db.Assets.AsQueryable().ToListAsync();
-        MongoHydrator.HydrateAssets(assets, db);
+        var staff = await StaffRepository.FindBySessionAsync(db, username, displayName);
 
         if (staff is null)
         {
-            return assets
-                .Where(a => a.CurrentStatus == AssetStatus.ActiveAssigned)
-                .Take(8)
-                .ToList();
+            return [];
         }
 
-        return assets
+        var assets = await db.Assets.AsQueryable()
             .Where(a => a.CurrentCustodianId == staff.Id)
             .OrderByDescending(a => a.UpdatedAt)
-            .ToList();
+            .ToListAsync();
+        MongoHydrator.HydrateAssets(assets, db);
+        return assets;
     }
 
     public async Task<List<Notification>> GetNotificationsForRoleAsync(string? role, bool unreadOnly = false)

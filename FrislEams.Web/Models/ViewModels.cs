@@ -61,6 +61,14 @@ public class AssignmentConfirmVm
     public string? ScannedRfidCode { get; set; }
 }
 
+public class AssignmentRejectVm
+{
+    public int AssignmentId { get; set; }
+    [Required]
+    public int RejectedByStaffId { get; set; }
+    public string? RejectionReason { get; set; }
+}
+
 public class UserCreateVm
 {
     [Required]

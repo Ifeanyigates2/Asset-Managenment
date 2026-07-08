@@ -20,9 +20,8 @@ public class MyAssetsController(AppDbContext db, FeatureHubService hub) : Contro
     [HttpGet("/MyAssets/ConfirmReceipt")]
     public async Task<IActionResult> ConfirmReceipt(int assetId)
     {
-        ViewData["Title"] = "Confirm Asset Receipt";
+        ViewData["Title"] = "Receive Asset";
 
-        // Receipt confirmation is only allowed from the Staff portal.
         var role = HttpContext.Session.GetString("UserRole");
         var portal = PortalService.GetPortalForRole(role);
         if (!string.Equals(portal, PortalService.StaffPortal, StringComparison.OrdinalIgnoreCase))
@@ -32,14 +31,12 @@ public class MyAssetsController(AppDbContext db, FeatureHubService hub) : Contro
 
         var username = HttpContext.Session.GetString("LoginUsername");
         var displayName = HttpContext.Session.GetString("UserName");
-
-        var staff = await db.Staff.AsQueryable().FirstOrDefaultAsync(s =>
-            s.FullName.Equals(displayName ?? string.Empty, StringComparison.OrdinalIgnoreCase)
-            || s.Email.StartsWith(username ?? string.Empty, StringComparison.OrdinalIgnoreCase));
+        var staff = await StaffRepository.FindBySessionAsync(db, username, displayName);
 
         if (staff is null)
         {
-            return Forbid();
+            TempData["Error"] = "Your staff profile could not be found. Contact IT support.";
+            return Redirect("/Portal/Staff");
         }
 
         var assignment = await db.AssetAssignments.AsQueryable()
@@ -52,10 +49,11 @@ public class MyAssetsController(AppDbContext db, FeatureHubService hub) : Contro
         if (assignment?.Asset is null || assignment.Asset.CurrentStatus != AssetStatus.AssignedPendingConfirmation)
         {
             TempData["Error"] = "This asset is not awaiting confirmation for you.";
-            return RedirectToAction(nameof(Index));
+            return Redirect("/Portal/Staff");
         }
 
         ViewBag.Asset = assignment.Asset;
+        ViewBag.Assignment = assignment;
 
         return View(new AssignmentConfirmVm
         {

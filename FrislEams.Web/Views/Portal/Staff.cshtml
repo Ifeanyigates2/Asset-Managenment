@@ -40,17 +40,21 @@
                     ? Url.Action("ConfirmReceipt", "MyAssets", new { assetId = asset.Id })
                     : Url.Action("Detail", "Assets", new { id = asset.Id });
 
-                var ariaLabel = $"Asset card: {asset.AssetName}{(isPendingConfirmation ? " (Accept receipt)" : "")}";
+                var ariaLabel = $"Asset card: {asset.AssetName}{(isPendingConfirmation ? " (Receive — accept or reject)" : "")}";
 
-                <a class="staff-asset-card" href="@href" aria-label="@ariaLabel">
+                <a class="staff-asset-card@(isPendingConfirmation ? " staff-asset-card--pending" : "")" href="@href" aria-label="@ariaLabel">
                     <div class="asset-icon">@AssetIcon(asset.AssetName)</div>
                     <div class="asset-text">
                         <div class="asset-name">@asset.AssetName</div>
                         <div class="asset-meta">@asset.TagCode · Assigned @asset.UpdatedAt.ToString("dd MMM yyyy")</div>
+                        @if (isPendingConfirmation)
+                        {
+                            <span class="staff-asset-pending-badge">Awaiting your receipt</span>
+                        }
                     </div>
                     @if (isPendingConfirmation)
                     {
-                        <span class="staff-asset-accept">Accept</span>
+                        <span class="staff-asset-accept">Receive</span>
                     }
                 </a>
             }

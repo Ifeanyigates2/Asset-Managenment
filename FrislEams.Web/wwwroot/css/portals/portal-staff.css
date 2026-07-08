@@ -59,6 +59,11 @@
     background: #fffdf8;
 }
 
+.portal-theme-staff .staff-asset-card--pending {
+    border-color: #f57c00;
+    background: #fff8f0;
+}
+
 .portal-theme-staff .staff-asset-card .asset-icon {
     background: #ffe0b2;
 }

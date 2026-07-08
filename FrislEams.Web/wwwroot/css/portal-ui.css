@@ -447,6 +447,108 @@
     white-space: nowrap;
 }
 
+.staff-asset-card--pending {
+    border-color: #ffcc80;
+    background: #fffdf5;
+    box-shadow: 0 0 0 1px rgba(245, 124, 0, 0.12);
+}
+
+.staff-asset-pending-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #e65100;
+    background: #fff3e0;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    margin-top: 0.2rem;
+    width: fit-content;
+}
+
+/* Receipt confirmation page */
+.receipt-asset-summary {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.1rem 1.25rem;
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-left: 4px solid #f57c00;
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+}
+
+.receipt-asset-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    background: #fff3e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    flex-shrink: 0;
+}
+
+.receipt-asset-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin-bottom: 0.35rem;
+}
+
+.receipt-asset-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.84rem;
+    color: #6c757d;
+    margin-bottom: 0.35rem;
+}
+
+.receipt-asset-detail {
+    font-size: 0.84rem;
+    color: #495057;
+}
+
+.receipt-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.receipt-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+}
+
+.receipt-card-desc {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin: 0 0 1rem;
+    line-height: 1.45;
+}
+
+.receipt-accept-card {
+    border-left: 4px solid #2e7d32;
+}
+
+.receipt-reject-card {
+    border-left: 4px solid #c62828;
+}
+
+.btn-block-mobile {
+    width: 100%;
+    min-height: 44px;
+}
+
+@media (max-width: 768px) {
+    .receipt-actions-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Quick action buttons (staff) */
 .staff-quick-actions {
     display: grid;
