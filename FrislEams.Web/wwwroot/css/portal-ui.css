@@ -437,20 +437,33 @@
 
 .staff-asset-accept {
     flex: 0 0 auto;
-    background: #f57c00;
+    background: #e65100;
     color: #fff;
     font-weight: 800;
-    font-size: 0.82rem;
-    padding: 0.35rem 0.6rem;
-    border-radius: 999px;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    padding: 0.7rem 1.15rem;
+    border-radius: 8px;
     margin-left: 0.5rem;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(230, 81, 0, 0.35);
+    text-transform: uppercase;
 }
 
 .staff-asset-card--pending {
-    border-color: #ffcc80;
-    background: #fffdf5;
-    box-shadow: 0 0 0 1px rgba(245, 124, 0, 0.12);
+    border-color: #f57c00;
+    border-width: 2px;
+    background: #fff8f0;
+    box-shadow: 0 0 0 2px rgba(245, 124, 0, 0.18);
+}
+
+.staff-asset-card--pending:hover {
+    border-color: #e65100;
+    background: #fff3e0;
+}
+
+.staff-asset-card--pending:hover .staff-asset-accept {
+    background: #bf360c;
 }
 
 .staff-asset-pending-badge {
@@ -463,6 +476,14 @@
     border-radius: 4px;
     margin-top: 0.2rem;
     width: fit-content;
+}
+
+.staff-asset-pending-hint {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #bf360c;
+    margin-top: 0.1rem;
 }
 
 /* Receipt confirmation page */
@@ -793,7 +814,7 @@
     .staff-action-btn { min-height: 44px; }
 
     .staff-asset-card { min-height: 70px; padding: 0.95rem 0.85rem; }
-    .staff-asset-accept { font-size: 0.8rem; padding: 0.35rem 0.55rem; }
+    .staff-asset-accept { font-size: 0.88rem; padding: 0.65rem 0.95rem; }
 
     .portal-nav-item {
         min-height: 44px;

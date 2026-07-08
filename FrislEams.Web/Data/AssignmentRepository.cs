@@ -7,7 +7,7 @@ public static class AssignmentRepository
 {
     /// <summary>
     /// Ensures Emmanuel (FR-009) has a pending receipt assignment for the Ubiquiti AP demo asset.
-    /// Safe to run on every startup — skips if a pending assignment already exists for that staff/asset pair.
+    /// Safe to run on every startup — resets the demo asset to AssignedPendingConfirmation so Staff UI always shows Receive.
     /// </summary>
     public static async Task EnsureDemoPendingReceiptAsync(
         AppDbContext db,
@@ -28,27 +28,6 @@ public static class AssignmentRepository
             return;
         }
 
-        var existingPending = await db.AssetAssignments.AsQueryable()
-            .FirstOrDefaultAsync(a =>
-                a.AssetId == asset.Id
-                && a.AssignedToStaffId == staff.Id
-                && a.Status == "Pending",
-                cancellationToken);
-
-        if (existingPending is not null)
-        {
-            if (asset.CurrentStatus != AssetStatus.AssignedPendingConfirmation)
-            {
-                asset.CurrentStatus = AssetStatus.AssignedPendingConfirmation;
-                asset.CurrentCustodianId = staff.Id;
-                asset.UpdatedAt = DateTime.UtcNow;
-                db.Assets.Update(asset);
-                await db.SaveChangesAsync(cancellationToken);
-            }
-
-            return;
-        }
-
         var itDept = await db.Departments.AsQueryable()
             .FirstOrDefaultAsync(d => d.Code == "IT", cancellationToken);
         var hqLoc = await db.Locations.AsQueryable()
@@ -60,25 +39,52 @@ public static class AssignmentRepository
             return;
         }
 
-        // Only create if the asset is unassigned or already in pending-confirmation for this staff.
-        if (asset.CurrentStatus is not (AssetStatus.RegisteredUnassigned or AssetStatus.AssignedPendingConfirmation))
+        var existingPending = await db.AssetAssignments.AsQueryable()
+            .FirstOrDefaultAsync(a =>
+                a.AssetId == asset.Id
+                && a.AssignedToStaffId == staff.Id
+                && a.Status == "Pending",
+                cancellationToken);
+
+        if (existingPending is null)
         {
-            return;
+            // Re-open a prior Confirmed assignment for this demo pair, or create a new Pending one.
+            var priorForStaff = await db.AssetAssignments.AsQueryable()
+                .Where(a => a.AssetId == asset.Id && a.AssignedToStaffId == staff.Id)
+                .OrderByDescending(a => a.AssignedDate)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (priorForStaff is not null)
+            {
+                priorForStaff.Status = "Pending";
+                priorForStaff.ConfirmedCondition = null;
+                priorForStaff.ConfirmationDate = null;
+                priorForStaff.AssignedCondition = asset.CurrentCondition ?? "Good";
+                priorForStaff.AssignedDate = DateTime.UtcNow;
+                priorForStaff.Notes = "Issued to IT — awaiting receipt confirmation";
+                priorForStaff.AssignedBy = "Admin";
+                db.AssetAssignments.Update(priorForStaff);
+                existingPending = priorForStaff;
+            }
+            else
+            {
+                existingPending = new AssetAssignment
+                {
+                    AssetId = asset.Id,
+                    AssignedToStaffId = staff.Id,
+                    AssignedToDepartmentId = itDept?.Id ?? staff.DepartmentId,
+                    AssignedLocationId = hqLoc.Id,
+                    AssignedCondition = asset.CurrentCondition ?? "Good",
+                    Status = "Pending",
+                    AssignedBy = "Admin",
+                    AssignedDate = DateTime.UtcNow,
+                    Notes = "Issued to IT — awaiting receipt confirmation"
+                };
+                db.AssetAssignments.Add(existingPending);
+            }
         }
 
-        db.AssetAssignments.Add(new AssetAssignment
-        {
-            AssetId = asset.Id,
-            AssignedToStaffId = staff.Id,
-            AssignedToDepartmentId = itDept?.Id ?? staff.DepartmentId,
-            AssignedLocationId = hqLoc.Id,
-            AssignedCondition = asset.CurrentCondition,
-            Status = "Pending",
-            AssignedBy = "Admin",
-            AssignedDate = DateTime.UtcNow,
-            Notes = "Issued to IT — awaiting receipt confirmation"
-        });
-
+        // Always force the demo asset into the pending-confirmation state for Emmanuel.
         asset.CurrentStatus = AssetStatus.AssignedPendingConfirmation;
         asset.CurrentCustodianId = staff.Id;
         asset.CurrentDepartmentId = itDept?.Id ?? staff.DepartmentId;
@@ -88,6 +94,6 @@ public static class AssignmentRepository
 
         await db.SaveChangesAsync(cancellationToken);
         Console.WriteLine(
-            $"FRISL EAMS startup: ensured pending receipt for '{staff.FullName}' on asset '{assetTag}'.");
+            $"FRISL EAMS startup: ensured pending receipt for '{staff.FullName}' on asset '{assetTag}' (status={asset.CurrentStatus}).");
     }
 }

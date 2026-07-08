@@ -65,8 +65,16 @@
 }
 
 .portal-theme-staff .staff-asset-card--pending {
-    border-color: #f57c00;
+    border-color: #e65100;
+    border-width: 2px;
     background: #fff8f0;
+}
+
+.portal-theme-staff .staff-asset-accept {
+    background: #e65100;
+    font-size: 0.95rem;
+    padding: 0.7rem 1.15rem;
+    border-radius: 8px;
 }
 
 .portal-theme-staff .staff-asset-card .asset-icon {

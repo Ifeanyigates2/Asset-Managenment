@@ -21,9 +21,10 @@ public static class SeedData
         RunSection("contractors", () => SeedContractors(db));
         RunSection("staff", () => SeedStaff(db));
         await RunSectionAsync("required staff", () => StaffRepository.EnsureRequiredStaffAsync(db, cancellationToken));
-        await RunSectionAsync("demo pending receipt", () => AssignmentRepository.EnsureDemoPendingReceiptAsync(db, cancellationToken));
         RunSection("user accounts", () => SeedUserAccounts(db));
         RunSection("assets", () => SeedAssets(db));
+        // After assets exist (and on every restart): keep Emmanuel's Ubiquiti AP awaiting receipt.
+        await RunSectionAsync("demo pending receipt", () => AssignmentRepository.EnsureDemoPendingReceiptAsync(db, cancellationToken));
 
         var userCount = await db.CountUsersAsync(cancellationToken);
         Console.WriteLine($"FRISL EAMS startup: {userCount} users in database.");

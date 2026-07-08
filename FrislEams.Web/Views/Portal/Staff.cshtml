@@ -50,11 +50,12 @@
                         @if (isPendingConfirmation)
                         {
                             <span class="staff-asset-pending-badge">Awaiting your receipt</span>
+                            <span class="staff-asset-pending-hint">Accept or reject this assignment</span>
                         }
                     </div>
                     @if (isPendingConfirmation)
                     {
-                        <span class="staff-asset-accept">Receive</span>
+                        <span class="staff-asset-accept" role="button">Receive</span>
                     }
                 </a>
             }
