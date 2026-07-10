@@ -64,6 +64,7 @@ builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<ReportingService>();
 builder.Services.AddScoped<RoleGuard>();
+builder.Services.AddScoped<WorkflowNotificationService>();
 builder.Services.AddScoped<SystemAuditService>();
 builder.Services.AddScoped<RfidTagService>();
 builder.Services.AddScoped<StockVerificationService>();

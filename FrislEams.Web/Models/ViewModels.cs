@@ -166,6 +166,15 @@ public class ApproveLoanVm
     public string ApprovedBy { get; set; } = "Admin";
 }
 
+public class RejectLoanVm
+{
+    public int LoanRequestId { get; set; }
+    [Required]
+    public string RejectedBy { get; set; } = string.Empty;
+    [Required]
+    public string RejectionReason { get; set; } = string.Empty;
+}
+
 public class RfidScanVm
 {
     [Required]

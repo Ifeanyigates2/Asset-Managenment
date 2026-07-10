@@ -52,9 +52,21 @@
                         <strong>Demo - Click to Auto-Fill</strong>
                     </div>
                     <div class="signin-demo-grid signin-demo-grid-inline signin-demo-grid-portals">
-                        <button type="button" class="role-pill role-pill-minimal portal-demo-btn">
-                            <span class="role-pill-title">@demoUser</span>
-                        </button>
+                        @if (portal == "Staff")
+                        {
+                            <button type="button" class="role-pill role-pill-minimal portal-demo-btn" data-user="Staff" data-password="Staff1">
+                                <span class="role-pill-title">Staff</span>
+                            </button>
+                            <button type="button" class="role-pill role-pill-minimal portal-demo-btn" data-user="ithod" data-password="HodIt1">
+                                <span class="role-pill-title">IT HOD</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="role-pill role-pill-minimal portal-demo-btn" data-user="@demoUser" data-password="@(portal == "Auditor" ? "auditor1" : portal == "Admin" ? "Admin1" : "Washington1")">
+                                <span class="role-pill-title">@demoUser</span>
+                            </button>
+                        }
                     </div>
                 </div>
 
@@ -72,10 +84,10 @@
 </div>
 
 <script>
-    const demoPassword = '@(portal == "Staff" ? "Staff1" : portal == "Auditor" ? "auditor1" : portal == "Admin" ? "Admin1" : "Washington1")';
-    const demoUser = '@demoUser';
-    document.querySelector('.portal-demo-btn')?.addEventListener('click', () => {
-        document.getElementById('username').value = demoUser;
-        document.getElementById('password').value = demoPassword;
+    document.querySelectorAll('.portal-demo-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('username').value = btn.dataset.user;
+            document.getElementById('password').value = btn.dataset.password;
+        });
     });
 </script>

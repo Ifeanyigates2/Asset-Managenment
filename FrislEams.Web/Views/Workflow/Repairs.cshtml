@@ -5,6 +5,7 @@
     var assets = ViewBag.Assets as List<Asset> ?? new();
     var staff = ViewBag.Staff as List<Staff> ?? new();
     var contractors = ViewBag.Contractors as List<RepairContractor> ?? new();
+    var currentStaff = ViewBag.CurrentStaff as Staff;
     var pending = Model.Where(r => r.Status == "Pending Admin Review").ToList();
     var inProgress = Model.Where(r => r.Status.StartsWith("Approved")).ToList();
     var completed = Model.Where(r => r.Status == "Completed").ToList();
@@ -43,13 +44,21 @@
             </div>
             <div class="form-group">
                 <label class="form-label required">Reported By</label>
-                <select name="ReportedByStaffId" class="form-control" required>
-                    <option value="">-- Staff Member --</option>
-                    @foreach (var s in staff)
-                    {
-                        <option value="@s.Id">@s.FullName</option>
-                    }
-                </select>
+                @if (currentStaff is not null)
+                {
+                    <input type="hidden" name="ReportedByStaffId" value="@currentStaff.Id" />
+                    <input type="text" class="form-control" value="@currentStaff.FullName" readonly />
+                }
+                else
+                {
+                    <select name="ReportedByStaffId" class="form-control" required>
+                        <option value="">-- Staff Member --</option>
+                        @foreach (var s in staff)
+                        {
+                            <option value="@s.Id">@s.FullName</option>
+                        }
+                    </select>
+                }
             </div>
             <div class="form-group">
                 <label class="form-label">Severity</label>

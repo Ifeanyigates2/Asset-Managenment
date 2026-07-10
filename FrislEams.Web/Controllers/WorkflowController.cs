@@ -10,13 +10,15 @@ public class WorkflowController(
     AppDbContext db,
     AssetLifecycleService lifecycleService,
     RfidMonitoringService rfidMonitoringService,
-    RoleGuard roleGuard) : Controller
+    RoleGuard roleGuard,
+    WorkflowNotificationService workflowNotifications) : Controller
 {
     // ──────────────────── ASSET REQUESTS ────────────────────
 
     [HttpGet]
     public async Task<IActionResult> Requests()
     {
+        await SetCurrentStaffViewBagAsync();
         ViewBag.Staff = await db.Staff.AsQueryable().Include(s => s.Department).ToListAsync();
         ViewBag.Assets = await db.Assets.ToListAsync();
         ViewBag.Departments = await db.Departments.ToListAsync();
@@ -33,21 +35,42 @@ public class WorkflowController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateRequest(AssetRequest vm)
     {
+        var staff = await GetCurrentStaffAsync();
+        if (staff is not null)
+        {
+            vm.RequestedByStaffId = staff.Id;
+            vm.DepartmentId = staff.DepartmentId;
+        }
+
         vm.CreatedAt = DateTime.UtcNow;
         vm.Status = "Pending Department Approval";
         db.AssetRequests.Add(vm);
         await db.SaveChangesAsync();
+
+        var requesterName = staff?.FullName
+            ?? (await db.Staff.FindAsync(vm.RequestedByStaffId))?.FullName
+            ?? "A staff member";
+        workflowNotifications.NotifyAssetRequestCreated(requesterName, vm.RequestType);
+        await db.SaveChangesAsync();
+
         TempData["Success"] = "Asset request submitted.";
         return RedirectToAction(nameof(Requests));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ApproveDeptRequest(int id, string approverName)
+    public async Task<IActionResult> ApproveDeptRequest(int id, string? approverName)
     {
+        if (!roleGuard.HasAnyRole(this, RoleName.DepartmentHead, RoleName.Admin)) return Forbid();
+
         var request = await db.AssetRequests.FindAsync(id);
         if (request is null) return NotFound();
-        request.ApprovedByDepartmentHead = approverName;
+
+        var resolvedApprover = string.IsNullOrWhiteSpace(approverName)
+            ? HttpContext.Session.GetString("UserName") ?? "Department Head"
+            : approverName.Trim();
+
+        request.ApprovedByDepartmentHead = resolvedApprover;
         request.DeptHeadApprovedAt = DateTime.UtcNow;
         request.Status = "Pending Admin Approval";
         await db.SaveChangesAsync();
@@ -88,6 +111,7 @@ public class WorkflowController(
     [HttpGet]
     public async Task<IActionResult> Repairs()
     {
+        await SetCurrentStaffViewBagAsync();
         ViewBag.Assets = await db.Assets
             .Where(a => a.CurrentStatus == AssetStatus.ActiveAssigned || a.CurrentStatus == AssetStatus.Damaged || a.CurrentStatus == AssetStatus.UnderRepair)
             .Include(a => a.CurrentDepartment)
@@ -107,6 +131,17 @@ public class WorkflowController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RaiseRepair(RepairRequestVm vm)
     {
+        var staff = await GetCurrentStaffAsync();
+        if (staff is not null)
+        {
+            vm.ReportedByStaffId = staff.Id;
+        }
+
+        var asset = await db.Assets.FindAsync(vm.AssetId);
+        var reporterName = staff?.FullName
+            ?? (await db.Staff.FindAsync(vm.ReportedByStaffId))?.FullName
+            ?? "A staff member";
+
         db.RepairRequests.Add(new RepairRequest
         {
             AssetId = vm.AssetId,
@@ -118,6 +153,13 @@ public class WorkflowController(
             CreatedAt = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
+
+        workflowNotifications.NotifyRepairRequestCreated(
+            reporterName,
+            asset?.TagCode ?? $"asset #{vm.AssetId}",
+            vm.Severity);
+        await db.SaveChangesAsync();
+
         TempData["Success"] = "Repair request raised.";
         return RedirectToAction(nameof(Repairs));
     }
@@ -171,6 +213,7 @@ public class WorkflowController(
     [HttpGet]
     public async Task<IActionResult> Loans()
     {
+        await SetCurrentStaffViewBagAsync();
         ViewBag.Assets = await db.Assets
             .Where(a => a.CurrentStatus == AssetStatus.ActiveAssigned)
             .Include(a => a.CurrentDepartment)
@@ -188,6 +231,17 @@ public class WorkflowController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RaiseLoan(LoanRequestVm vm)
     {
+        var staff = await GetCurrentStaffAsync();
+        if (staff is not null)
+        {
+            vm.RequestedByStaffId = staff.Id;
+        }
+
+        var asset = await db.Assets.FindAsync(vm.AssetId);
+        var requesterName = staff?.FullName
+            ?? (await db.Staff.FindAsync(vm.RequestedByStaffId))?.FullName
+            ?? "A staff member";
+
         db.LoanRequests.Add(new LoanRequest
         {
             AssetId = vm.AssetId,
@@ -201,6 +255,13 @@ public class WorkflowController(
             Status = "Pending"
         });
         await db.SaveChangesAsync();
+
+        workflowNotifications.NotifyLoanRequestCreated(
+            requesterName,
+            asset?.TagCode ?? $"asset #{vm.AssetId}",
+            vm.LoanType);
+        await db.SaveChangesAsync();
+
         TempData["Success"] = "Loan request submitted.";
         return RedirectToAction(nameof(Loans));
     }
@@ -239,6 +300,37 @@ public class WorkflowController(
 
         await db.SaveChangesAsync();
         TempData["Success"] = "Loan approved.";
+        return RedirectToAction(nameof(Loans));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RejectLoan(RejectLoanVm vm)
+    {
+        if (!roleGuard.HasAnyRole(this, RoleName.Admin, RoleName.DepartmentHead)) return Forbid();
+
+        var loan = await db.LoanRequests.AsQueryable().Include(l => l.Asset).FirstOrDefaultAsync(l => l.Id == vm.LoanRequestId);
+        if (loan is null) return NotFound();
+
+        if (!string.Equals(loan.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["Error"] = "Only pending loan requests can be rejected.";
+            return RedirectToAction(nameof(Loans));
+        }
+
+        var reason = string.IsNullOrWhiteSpace(vm.RejectionReason)
+            ? "Loan request declined"
+            : vm.RejectionReason.Trim();
+
+        loan.Status = "Rejected";
+        loan.RejectedBy = string.IsNullOrWhiteSpace(vm.RejectedBy)
+            ? HttpContext.Session.GetString("UserName") ?? "Approver"
+            : vm.RejectedBy.Trim();
+        loan.RejectedAt = DateTime.UtcNow;
+        loan.RejectionReason = reason;
+
+        await db.SaveChangesAsync();
+        TempData["Success"] = $"Loan request rejected: {reason}";
         return RedirectToAction(nameof(Loans));
     }
 
@@ -288,5 +380,20 @@ public class WorkflowController(
         var (outcome, alert, message) = await rfidMonitoringService.ProcessDoorScanAsync(vm.RfidCode.Trim(), vm.DoorLocation.Trim());
         TempData[alert ? "Error" : "Success"] = message;
         return RedirectToAction(nameof(Rfid));
+    }
+
+    private async Task<Staff?> GetCurrentStaffAsync()
+    {
+        var username = HttpContext.Session.GetString("LoginUsername");
+        var displayName = HttpContext.Session.GetString("UserName");
+        return await StaffRepository.FindBySessionAsync(db, username, displayName);
+    }
+
+    private async Task SetCurrentStaffViewBagAsync()
+    {
+        var staff = await GetCurrentStaffAsync();
+        ViewBag.CurrentStaff = staff;
+        ViewBag.CurrentStaffId = staff?.Id;
+        ViewBag.CurrentDepartmentId = staff?.DepartmentId;
     }
 }

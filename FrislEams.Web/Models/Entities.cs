@@ -295,6 +295,9 @@ public class LoanRequest
     public string Status { get; set; } = "Pending";
     public string? ApprovedBy { get; set; }
     public DateTime? ApprovedAt { get; set; }
+    public string? RejectedBy { get; set; }
+    public DateTime? RejectedAt { get; set; }
+    public string? RejectionReason { get; set; }
 }
 
 public class ExitGrant

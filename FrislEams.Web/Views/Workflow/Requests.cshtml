@@ -1,9 +1,15 @@
 @model List<AssetRequest>
+@using FrislEams.Web.Domain
 @{
     ViewData["Title"] = "Asset Requests";
     var staff = ViewBag.Staff as List<Staff> ?? new();
     var assets = ViewBag.Assets as List<Asset> ?? new();
     var departments = ViewBag.Departments as List<Department> ?? new();
+    var currentStaff = ViewBag.CurrentStaff as Staff;
+    var currentStaffId = ViewBag.CurrentStaffId as int?;
+    var currentDepartmentId = ViewBag.CurrentDepartmentId as int?;
+    var canApproveDept = string.Equals(Context.Session.GetString("UserRole"), RoleName.Admin, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Context.Session.GetString("UserRole"), RoleName.DepartmentHead, StringComparison.OrdinalIgnoreCase);
     var pendingDept = Model.Where(r => r.Status == "Pending Department Approval").ToList();
     var pendingAdmin = Model.Where(r => r.Status == "Pending Admin Approval").ToList();
     var approved = Model.Where(r => r.Status.StartsWith("Approved")).ToList();
@@ -42,23 +48,46 @@
             </div>
             <div class="form-group">
                 <label class="form-label required">Requested By</label>
-                <select name="RequestedByStaffId" class="form-control" required>
-                    <option value="">-- Select Staff --</option>
-                    @foreach (var s in staff)
-                    {
-                        <option value="@s.Id">@s.FullName — @s.Department?.Name</option>
-                    }
-                </select>
+                @if (currentStaff is not null)
+                {
+                    <input type="hidden" name="RequestedByStaffId" value="@currentStaff.Id" />
+                    <input type="text" class="form-control" value="@currentStaff.FullName — @currentStaff.Department?.Name" readonly />
+                }
+                else
+                {
+                    <select name="RequestedByStaffId" class="form-control" required>
+                        <option value="">-- Select Staff --</option>
+                        @foreach (var s in staff)
+                        {
+                            <option value="@s.Id">@s.FullName — @s.Department?.Name</option>
+                        }
+                    </select>
+                }
             </div>
             <div class="form-group">
                 <label class="form-label required">Department</label>
-                <select name="DepartmentId" class="form-control" required>
-                    <option value="">-- Select Department --</option>
-                    @foreach (var d in departments)
-                    {
-                        <option value="@d.Id">@d.Name</option>
-                    }
-                </select>
+                @if (currentStaff is not null)
+                {
+                    <input type="hidden" name="DepartmentId" value="@currentStaff.DepartmentId" />
+                    <input type="text" class="form-control" value="@(currentStaff.Department?.Name ?? "Your department")" readonly />
+                }
+                else
+                {
+                    <select name="DepartmentId" class="form-control" required>
+                        <option value="">-- Select Department --</option>
+                        @foreach (var d in departments)
+                        {
+                            if (currentDepartmentId == d.Id)
+                            {
+                                <option value="@d.Id" selected>@d.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@d.Id">@d.Name</option>
+                            }
+                        }
+                    </select>
+                }
             </div>
             <div class="form-group">
                 <label class="form-label">Related Asset (Optional)</label>
@@ -101,18 +130,25 @@
                         <td style="font-size:0.83rem;max-width:250px;">@r.Description</td>
                         <td style="font-size:0.82rem;">@r.CreatedAt.ToString("dd MMM yyyy")</td>
                         <td>
-                            <form asp-action="ApproveDeptRequest" method="post" style="display:flex;gap:6px;align-items:center;">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@r.Id" />
-                                <input name="approverName" class="form-control form-control-sm" placeholder="Dept. Head name" required />
-                                <button type="submit" class="btn btn-success btn-sm">Approve</button>
-                            </form>
-                            <form asp-action="RejectRequest" method="post" style="display:flex;gap:6px;align-items:center;margin-top:4px;">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@r.Id" />
-                                <input name="reason" class="form-control form-control-sm" placeholder="Rejection reason" required />
-                                <button type="submit" class="btn btn-danger btn-sm">Reject</button>
-                            </form>
+                            @if (canApproveDept)
+                            {
+                                <form asp-action="ApproveDeptRequest" method="post" style="display:flex;gap:6px;align-items:center;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@r.Id" />
+                                    <input name="approverName" class="form-control form-control-sm" placeholder="Dept. Head name" value="@(Context.Session.GetString("UserName") ?? "")" />
+                                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                </form>
+                                <form asp-action="RejectRequest" method="post" style="display:flex;gap:6px;align-items:center;margin-top:4px;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@r.Id" />
+                                    <input name="reason" class="form-control form-control-sm" placeholder="Rejection reason" required />
+                                    <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-muted" style="font-size:0.8rem;">Awaiting department head approval</span>
+                            }
                         </td>
                     </tr>
                 }

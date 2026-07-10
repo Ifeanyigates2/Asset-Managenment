@@ -6,7 +6,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FrislEams.Web.Controllers;
 
-public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecycleService, RfidTagService rfidTagService) : Controller
+public class AssignmentsController(
+    AppDbContext db,
+    AssetLifecycleService lifecycleService,
+    RfidTagService rfidTagService,
+    WorkflowNotificationService workflowNotifications) : Controller
 {
     private const string StaffReturnUrl = "/Portal/Staff";
 
@@ -72,6 +76,16 @@ public class AssignmentsController(AppDbContext db, AssetLifecycleService lifecy
         asset.CurrentLocationId = vm.AssignedLocationId;
 
         await db.SaveChangesAsync();
+
+        var assignee = vm.AssignedToStaffId.HasValue
+            ? await db.Staff.FindAsync(vm.AssignedToStaffId.Value)
+            : null;
+        workflowNotifications.NotifyAssignmentPending(
+            assignee?.FullName ?? "staff member",
+            asset.TagCode,
+            asset.AssetName);
+        await db.SaveChangesAsync();
+
         TempData["Success"] = "Assignment initiated.";
         return RedirectToAction(nameof(Index));
     }

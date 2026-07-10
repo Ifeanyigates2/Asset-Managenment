@@ -4,9 +4,13 @@
     ViewData["Title"] = "Loans & Exit Grants";
     var assets = ViewBag.Assets as List<Asset> ?? new();
     var staff = ViewBag.Staff as List<Staff> ?? new();
+    var currentStaff = ViewBag.CurrentStaff as Staff;
     var pending = Model.Where(l => l.Status == "Pending").ToList();
     var approved = Model.Where(l => l.Status == "Approved").ToList();
     var returned = Model.Where(l => l.Status == "Returned").ToList();
+    var rejected = Model.Where(l => l.Status == "Rejected").ToList();
+    var canApproveLoans = string.Equals(Context.Session.GetString("UserRole"), RoleName.Admin, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Context.Session.GetString("UserRole"), RoleName.DepartmentHead, StringComparison.OrdinalIgnoreCase);
 }
 
 <div class="page-header">
@@ -42,13 +46,21 @@
             </div>
             <div class="form-group">
                 <label class="form-label required">Requested By</label>
-                <select name="RequestedByStaffId" class="form-control" required>
-                    <option value="">-- Staff Member --</option>
-                    @foreach (var s in staff)
-                    {
-                        <option value="@s.Id">@s.FullName</option>
-                    }
-                </select>
+                @if (currentStaff is not null)
+                {
+                    <input type="hidden" name="RequestedByStaffId" value="@currentStaff.Id" />
+                    <input type="text" class="form-control" value="@currentStaff.FullName" readonly />
+                }
+                else
+                {
+                    <select name="RequestedByStaffId" class="form-control" required>
+                        <option value="">-- Staff Member --</option>
+                        @foreach (var s in staff)
+                        {
+                            <option value="@s.Id">@s.FullName</option>
+                        }
+                    </select>
+                }
             </div>
             <div class="form-group">
                 <label class="form-label">Loan Type</label>
@@ -92,7 +104,7 @@
         <div class="table-card" style="margin:0;">
             <table class="data-table">
                 <thead>
-                    <tr><th>Asset</th><th>Requester</th><th>Type</th><th>Purpose</th><th>Destination</th><th>Start</th><th>Return</th><th>Approve</th></tr>
+                    <tr><th>Asset</th><th>Requester</th><th>Type</th><th>Purpose</th><th>Destination</th><th>Start</th><th>Return</th><th>Action</th></tr>
                 </thead>
                 <tbody>
                 @foreach (var l in pending)
@@ -109,12 +121,26 @@
                         <td style="font-size:0.82rem;">@l.StartDate.ToString("dd MMM yyyy")</td>
                         <td style="font-size:0.82rem;">@l.ExpectedReturnDate.ToString("dd MMM yyyy")</td>
                         <td>
-                            <form asp-action="ApproveLoan" method="post">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="LoanRequestId" value="@l.Id" />
-                                <input name="ApprovedBy" class="form-control form-control-sm" value="@(Context.Session.GetString("UserName") ?? "Backoffice")" required />
-                                <button type="submit" class="btn btn-success btn-sm" style="margin-top:4px;">Approve &amp; Grant</button>
-                            </form>
+                            @if (canApproveLoans)
+                            {
+                                <form asp-action="ApproveLoan" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="LoanRequestId" value="@l.Id" />
+                                    <input name="ApprovedBy" class="form-control form-control-sm" value="@(Context.Session.GetString("UserName") ?? "Backoffice")" required />
+                                    <button type="submit" class="btn btn-success btn-sm" style="margin-top:4px;">Approve &amp; Grant</button>
+                                </form>
+                                <form asp-action="RejectLoan" method="post" style="margin-top:4px;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="LoanRequestId" value="@l.Id" />
+                                    <input type="hidden" name="RejectedBy" value="@(Context.Session.GetString("UserName") ?? "Approver")" />
+                                    <input name="RejectionReason" class="form-control form-control-sm" placeholder="Rejection reason" required />
+                                    <button type="submit" class="btn btn-danger btn-sm" style="margin-top:4px;">Reject</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-muted" style="font-size:0.8rem;">Awaiting HOD / Admin approval</span>
+                            }
                         </td>
                     </tr>
                 }
@@ -195,6 +221,36 @@
                         <td style="font-size:0.82rem;">@l.Purpose</td>
                         <td style="font-size:0.82rem;">@l.ExpectedReturnDate.ToString("dd MMM yyyy")</td>
                         <td style="font-size:0.82rem;">@(l.ActualReturnDate?.ToString("dd MMM yyyy") ?? "—")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<!-- Rejected -->
+@if (rejected.Any())
+{
+    <div class="info-card" style="border-left:4px solid #dc3545;margin-top:1.5rem;">
+        <h3 class="info-card-title" style="color:#dc3545;">Rejected (@rejected.Count)</h3>
+        <div class="table-card" style="margin:0;">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Asset</th><th>Requester</th><th>Type</th><th>Rejected By</th><th>Reason</th><th>Rejected</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var l in rejected)
+                {
+                    <tr>
+                        <td>
+                            <a asp-controller="Assets" asp-action="Detail" asp-route-id="@l.AssetId" class="tag-link">@l.Asset?.TagCode</a>
+                        </td>
+                        <td>@l.RequestedByStaff?.FullName</td>
+                        <td><span class="badge badge-muted">@l.LoanType</span></td>
+                        <td>@(l.RejectedBy ?? "—")</td>
+                        <td style="font-size:0.82rem;">@(l.RejectionReason ?? "—")</td>
+                        <td style="font-size:0.82rem;">@(l.RejectedAt?.ToString("dd MMM yyyy") ?? "—")</td>
                     </tr>
                 }
                 </tbody>
